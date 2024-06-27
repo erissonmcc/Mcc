@@ -8,7 +8,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Adicione suas rotas aqui
 app.get('/', (req, res) => {
-  res.send('Servidor Express está rodando na porta 3000');
+  res.send('Servidor Express está rodando como função serverless');
 });
 
 // Adicione outras rotas conforme necessário
