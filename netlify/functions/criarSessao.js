@@ -1,14 +1,23 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const cors = require('cors')();
 
 exports.handler = async (event, context) => {
   // Permitir solicitações de qualquer origem temporariamente (CORS)
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   };
 
-  // Log para nova solicitação
-  console.log('Nova solicitação recebida:', event.httpMethod, event.path);
+  // Verificar o método da solicitação
+  if (event.httpMethod === 'OPTIONS') {
+    // Responder a solicitação OPTIONS sem processar a função
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ message: 'OPTIONS recebido' }),
+    };
+  }
 
   // Verificar o método da solicitação
   if (event.httpMethod !== 'POST') {
@@ -19,12 +28,12 @@ exports.handler = async (event, context) => {
     };
   }
 
+  // Habilitar o CORS para a função
+  cors(event, context, () => {});
+
   // Obter dados do corpo da solicitação (dados do usuário)
   const requestBody = JSON.parse(event.body);
   const { uid, email, displayName } = requestBody;
-
-  // Log dos dados do usuário
-  console.log('Dados do usuário:', { uid, email, displayName });
 
   // Criar sessão de checkout na Stripe
   try {
@@ -50,9 +59,6 @@ exports.handler = async (event, context) => {
         displayName: displayName,
       },
     });
-
-    // Log da sessão criada
-    console.log('Sessão criada com sucesso:', session);
 
     // Retornar ID da sessão criada
     return {
