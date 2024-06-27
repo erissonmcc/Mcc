@@ -10,24 +10,25 @@ exports.handler = async (event, context) => {
   };
 
   console.log('Nova solicitação recebida:', event.httpMethod, event.path);
+
   // Verificar o método da solicitação
   if (event.httpMethod === 'OPTIONS') {
     // Responder a solicitação OPTIONS sem processar a função
+    console.log('Solicitação OPTIONS recebida');
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({ message: 'OPTIONS recebido' }),
-      console.log('Soliciração não permitida');
     };
   }
 
   // Verificar o método da solicitação
   if (event.httpMethod !== 'POST') {
+    console.log('Solicitação não permitida:', event.httpMethod);
     return {
       statusCode: 405,
       headers,
       body: JSON.stringify({ error: 'Método não permitido' }),
-      console.log('Solicitação não permitida');
     };
   }
 
