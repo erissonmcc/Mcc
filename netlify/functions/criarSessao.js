@@ -33,7 +33,7 @@ exports.handler = async (event, context) => {
   }
 
   // Habilitar o CORS para a função
-  cors(event, context, () => {});
+  const corsMiddleware = cors(event, context);
 
   // Obter dados do corpo da solicitação (dados do usuário)
   const requestBody = JSON.parse(event.body);
