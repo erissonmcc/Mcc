@@ -20,6 +20,9 @@ exports.handler = async (event, context) => {
   const requestBody = JSON.parse(event.body);
   const { uid, email, displayName } = requestBody;
 
+  // Log dos dados do usuário
+  console.log('Dados do usuário:', { uid, email, displayName });
+
   // Criar sessão de checkout na Stripe
   try {
     const session = await stripe.checkout.sessions.create({
@@ -44,6 +47,9 @@ exports.handler = async (event, context) => {
         displayName: displayName,
       },
     });
+
+    // Log da sessão criada
+    console.log('Sessão criada com sucesso:', session);
 
     // Retornar ID da sessão criada
     return {
