@@ -9,6 +9,7 @@ exports.handler = async (event, context) => {
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   };
 
+  console.log('Nova solicitação recebida:', event.httpMethod, event.path);
   // Verificar o método da solicitação
   if (event.httpMethod === 'OPTIONS') {
     // Responder a solicitação OPTIONS sem processar a função
@@ -16,6 +17,7 @@ exports.handler = async (event, context) => {
       statusCode: 200,
       headers,
       body: JSON.stringify({ message: 'OPTIONS recebido' }),
+      console.log('Soliciração não permitida');
     };
   }
 
@@ -25,6 +27,7 @@ exports.handler = async (event, context) => {
       statusCode: 405,
       headers,
       body: JSON.stringify({ error: 'Método não permitido' }),
+      console.log('Solicitação não permitida');
     };
   }
 
@@ -34,6 +37,8 @@ exports.handler = async (event, context) => {
   // Obter dados do corpo da solicitação (dados do usuário)
   const requestBody = JSON.parse(event.body);
   const { uid, email, displayName } = requestBody;
+
+  console.log('Dados do usuário:', { uid, email, displayName });
 
   // Criar sessão de checkout na Stripe
   try {
@@ -60,6 +65,7 @@ exports.handler = async (event, context) => {
       },
     });
 
+    console.log('Sessão criada com sucesso:', session);
     // Retornar ID da sessão criada
     return {
       statusCode: 200,
