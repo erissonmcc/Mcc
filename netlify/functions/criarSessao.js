@@ -1,18 +1,21 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const cors = require('cors')({
-  origin: '*', // Permitir todas as origens. Modifique conforme necessário.
-  allowedHeaders: 'Content-Type',
-});
+const cors = require('cors');
 
 exports.handler = async (event, context) => {
   console.log('Nova solicitação recebida:', event.httpMethod, event.path);
 
   // Aplicar CORS
+  const corsHandler = cors({
+    origin: '*', // Permitir todas as origens. Modifique conforme necessário.
+    allowedHeaders: 'Content-Type',
+  });
+
   return new Promise((resolve, reject) => {
-    cors(event, context, (err) => {
+    corsHandler(event, context, (err) => {
       if (err) {
         console.error('Erro ao aplicar CORS:', err);
         reject(err);
+        return;
       }
 
       // Configuração dos cabeçalhos padrão
@@ -30,6 +33,7 @@ exports.handler = async (event, context) => {
           headers,
           body: JSON.stringify({ message: 'OPTIONS recebido' }),
         });
+        return;
       }
 
       // Verificar o método da solicitação
@@ -40,6 +44,7 @@ exports.handler = async (event, context) => {
           headers,
           body: JSON.stringify({ error: 'Método não permitido' }),
         });
+        return;
       }
 
       // Obter dados do corpo da solicitação (dados do usuário)
