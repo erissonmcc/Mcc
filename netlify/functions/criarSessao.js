@@ -1,15 +1,14 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const cors = require('cors')();
+const cors = require('cors');
 
 exports.handler = async (event, context) => {
-  // Permitir solicitações de qualquer origem temporariamente (CORS)
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  };
-
   console.log('Nova solicitação recebida:', event.httpMethod, event.path);
+
+  // Configuração dos cabeçalhos padrão
+  const headers = {
+    'Access-Control-Allow-Origin': '*', // Permitir todos os origens. Modifique conforme necessário.
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
 
   // Verificar o método da solicitação
   if (event.httpMethod === 'OPTIONS') {
@@ -34,7 +33,7 @@ exports.handler = async (event, context) => {
 
   // Habilitar o CORS para a função
   return new Promise((resolve, reject) => {
-    cors(event, context, (err) => {
+    cors()(event, context, (err) => {
       if (err) {
         console.error('Erro ao aplicar CORS:', err);
         reject({
