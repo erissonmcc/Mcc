@@ -1,5 +1,8 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const cors = require('cors')();
+const cors = require('cors')({
+  origin: '*', // Permitir todas as origens. Modifique conforme necessário.
+  allowedHeaders: 'Content-Type',
+});
 
 exports.handler = async (event, context) => {
   console.log('Nova solicitação recebida:', event.httpMethod, event.path);
