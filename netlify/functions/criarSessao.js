@@ -4,12 +4,9 @@ const cors = require('cors');
 exports.handler = async (event, context) => {
   console.log('Nova solicitação recebida:', event.httpMethod, event.path);
 
-  // Configuração dos cabeçalhos padrão
-  const headers = {
-    'Access-Control-Allow-Origin': '*', // Permitir todos os origens. Modifique conforme necessário.
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
-
+// Aplicar CORS
+  cors(event, context, () => {});
+  
   // Verificar o método da solicitação
   if (event.httpMethod === 'OPTIONS') {
     // Responder a solicitação OPTIONS sem processar a função
@@ -30,19 +27,6 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({ error: 'Método não permitido' }),
     };
   }
-
-  // Habilitar o CORS para a função
-  return new Promise((resolve, reject) => {
-    cors()(event, context, (err) => {
-      if (err) {
-        console.error('Erro ao aplicar CORS:', err);
-        reject({
-          statusCode: 500,
-          headers,
-          body: JSON.stringify({ error: 'Erro ao aplicar CORS' }),
-        });
-      }
-
       // Obter dados do corpo da solicitação (dados do usuário)
       const requestBody = JSON.parse(event.body);
       const { uid, email, displayName } = requestBody;
