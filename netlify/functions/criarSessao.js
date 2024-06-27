@@ -7,6 +7,9 @@ exports.handler = async (event, context) => {
     'Access-Control-Allow-Headers': 'Content-Type',
   };
 
+  // Log para nova solicitação
+  console.log('Nova solicitação recebida:', event.httpMethod, event.path);
+
   // Verificar o método da solicitação
   if (event.httpMethod !== 'POST') {
     return {
