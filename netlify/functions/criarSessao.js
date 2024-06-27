@@ -2,6 +2,8 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const cors = require('cors')();
 
 exports.handler = async (event, context) => {
+  console.log('Nova solicitação recebida:', event.httpMethod, event.path);
+
   // Aplicar CORS
   return new Promise((resolve, reject) => {
     cors(event, context, (err) => {
@@ -9,8 +11,6 @@ exports.handler = async (event, context) => {
         console.error('Erro ao aplicar CORS:', err);
         reject(err);
       }
-
-      console.log('Nova solicitação recebida:', event.httpMethod, event.path);
 
       // Configuração dos cabeçalhos padrão
       const headers = {
@@ -68,3 +68,21 @@ exports.handler = async (event, context) => {
           displayName: displayName,
         },
       }).then(session => {
+        console.log('Sessão criada com sucesso:', session);
+        // Retornar ID da sessão criada
+        resolve({
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ id: session.id }),
+        });
+      }).catch(error => {
+        console.error('Erro ao criar sessão de checkout:', error);
+        reject({
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Erro ao criar sessão de checkout' }),
+        });
+      });
+    });
+  });
+};
