@@ -10,7 +10,7 @@ exports.handler = async (event, context) => {
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };
-
+l
   // Verificar o método da solicitação
   if (event.httpMethod === 'OPTIONS') {
     // Responder a solicitação OPTIONS sem processar a função
@@ -56,7 +56,7 @@ exports.handler = async (event, context) => {
 
     // Criar sessão de checkout na Stripe
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
+      payment_method_types: ['card', 'boleto', 'pix', 'apple_pay', 'google_pay', 'alipay', 'sepa_debit', 'ideal', 'bancontact', 'giropay'],
       line_items: [{
         price_data: {
           currency: 'brl',
