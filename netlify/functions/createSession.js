@@ -1,5 +1,15 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { db, auth, admin } = require('./firebaseAdmin'); // Certifique-se de que o Firebase Admin SDK está configurado
+const admin = require('firebase-admin');
+
+// Inicialize o Firebase Admin SDK se ainda não estiver inicializado
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.applicationDefault(), // Ou use admin.credential.cert(serviceAccount) se estiver usando uma chave de serviço
+  });
+}
+
+const db = admin.firestore();
+const auth = admin.auth();
 
 exports.handler = async (event, context) => {
   console.log('Nova solicitação recebida:', event.httpMethod, event.path);
@@ -30,11 +40,10 @@ exports.handler = async (event, context) => {
 
   try {
     const requestBody = JSON.parse(event.body);
-    const { uid, email, displayName, token } = requestBody; // Recebe o token JWT
+    const { uid, email, displayName, token } = requestBody;
 
     console.log('Dados do usuário:', { uid, email, displayName });
 
-    // Verificar e decodificar o token JWT
     const decodedToken = await auth.verifyIdToken(token);
     if (decodedToken.uid !== uid) {
       console.log('UID no token JWT não corresponde ao UID fornecido');
@@ -54,10 +63,10 @@ exports.handler = async (event, context) => {
         console.log('Email ou nome de usuário não correspondem');
         return {
           statusCode: 403,
-          headers,
-          body: JSON.stringify({ error: 'Email ou nome de usuário não autorizado' }),
-        };
-      }
+        headers,
+        body: JSON.stringify({ error: 'Email ou nome de usuário não autorizado' }),
+      };
+    }
       
       if (userData.purchases && userData.purchases.some(purchase => purchase.productName === 'Postiça realista iniciante e aperfeiçoamento')) {
         console.log('Usuário já comprou o curso. Recusando a criação da sessão.');
