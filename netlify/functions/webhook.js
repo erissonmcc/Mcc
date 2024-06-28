@@ -1,5 +1,5 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { db } = require('./firebaseAdmin');
+const { db, admin } = require('./firebaseAdmin');
 
 exports.handler = async (event, context) => {
   const stripeSignature = event.headers['stripe-signature'];
