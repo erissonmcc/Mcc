@@ -1,4 +1,5 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const { db } = require('./firebaseAdmin');
 
 exports.handler = async (event, context) => {
   console.log('Nova solicitação recebida:', event.httpMethod, event.path);
@@ -36,6 +37,22 @@ exports.handler = async (event, context) => {
     const { uid, email, displayName } = requestBody;
 
     console.log('Dados do usuário:', { uid, email, displayName });
+
+    // Verificar se o usuário já comprou o curso
+    const userRef = db.collection('users').doc(uid);
+    const userDoc = await userRef.get();
+
+    if (userDoc.exists) {
+      const userData = userDoc.data();
+      if (userData.purchases && userData.purchases.some(purchase => purchase.productName === 'Postiça realista iniciante e aperfeiçoamento')) {
+        console.log('Usuário já comprou o curso. Recusando a criação da sessão.');
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Usuário já comprou o curso' }),
+        };
+      }
+    }
 
     // Criar sessão de checkout na Stripe
     const session = await stripe.checkout.sessions.create({
