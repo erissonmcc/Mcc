@@ -1,19 +1,16 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { db } = require('./firebaseAdmin');
+const { db, auth } = require('./firebaseAdmin'); // Certifique-se de que o Firebase Admin SDK está configurado
 
 exports.handler = async (event, context) => {
   console.log('Nova solicitação recebida:', event.httpMethod, event.path);
 
-  // Configuração dos cabeçalhos padrão
   const headers = {
-    'Access-Control-Allow-Origin': '*', // Permitir todas as origens. Modifique conforme necessário.
+    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };
 
-  // Verificar o método da solicitação
   if (event.httpMethod === 'OPTIONS') {
-    // Responder a solicitação OPTIONS sem processar a função
     console.log('Solicitação OPTIONS recebida');
     return {
       statusCode: 200,
@@ -32,18 +29,36 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    // Obter dados do corpo da solicitação (dados do usuário)
     const requestBody = JSON.parse(event.body);
-    const { uid, email, displayName } = requestBody;
+    const { uid, email, displayName, token } = requestBody; // Recebe o token JWT
 
     console.log('Dados do usuário:', { uid, email, displayName });
 
-    // Verificar se o usuário já comprou o curso
+    // Verificar e decodificar o token JWT
+    const decodedToken = await auth.verifyIdToken(token);
+    if (decodedToken.uid !== uid) {
+      console.log('UID no token JWT não corresponde ao UID fornecido');
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({ error: 'UID não autorizado' }),
+      };
+    }
+
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
 
     if (userDoc.exists) {
       const userData = userDoc.data();
+      if (userData.email !== email || userData.displayName !== displayName) {
+        console.log('Email ou nome de usuário não correspondem');
+        return {
+          statusCode: 403,
+          headers,
+          body: JSON.stringify({ error: 'Email ou nome de usuário não autorizado' }),
+        };
+      }
+      
       if (userData.purchases && userData.purchases.some(purchase => purchase.productName === 'Postiça realista iniciante e aperfeiçoamento')) {
         console.log('Usuário já comprou o curso. Recusando a criação da sessão.');
         return {
@@ -54,29 +69,23 @@ exports.handler = async (event, context) => {
       }
     }
 
-    // Verificar se já existe uma sessão de checkout válida para este usuário
-    const sessionRef = db.collection('checkoutSessions').doc(uid);
-    const sessionDoc = await sessionRef.get();
+    const existingSession = await db.collection('checkout_sessions')
+                                   .where('uid', '==', uid)
+                                   .where('productName', '==', 'Postiça realista iniciante e aperfeiçoamento')
+                                   .where('expiresAt', '>', new Date())
+                                   .limit(1)
+                                   .get();
 
-    if (sessionDoc.exists) {
-      const sessionData = sessionDoc.data();
-      const now = new Date();
-      const sessionCreationTime = new Date(sessionData.created);
-      const sessionExpirationTime = new Date(sessionCreationTime.getTime() + 24 * 60 * 60 * 1000);
-
-      if (now < sessionExpirationTime) {
-        console.log('Sessão de checkout existente encontrada e ainda válida:', sessionData.id);
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({ id: sessionData.id }),
-        };
-      } else {
-        console.log('Sessão de checkout existente encontrada, mas expirou.');
-      }
+    if (!existingSession.empty) {
+      const sessionData = existingSession.docs[0].data();
+      console.log('Sessão existente encontrada:', sessionData.id);
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ id: sessionData.id }),
+      };
     }
 
-    // Criar nova sessão de checkout na Stripe
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card', 'boleto'],
       line_items: [{
@@ -85,7 +94,7 @@ exports.handler = async (event, context) => {
           product_data: {
             name: 'Postiça realista iniciante e aperfeiçoamento',
           },
-          unit_amount: 3400, // Valor em centavos (R$ 34,00)
+          unit_amount: 3400,
         },
         quantity: 1,
       }],
@@ -100,15 +109,14 @@ exports.handler = async (event, context) => {
       },
     });
 
-    console.log('Sessão criada com sucesso:', session);
-
-    // Salvar a sessão de checkout no Firestore
-    await sessionRef.set({
+    await db.collection('checkout_sessions').doc(session.id).set({
+      uid: uid,
+      productName: 'Postiça realista iniciante e aperfeiçoamento',
       id: session.id,
-      created: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 horas a partir de agora
     });
 
-    // Retornar ID da sessão criada
+    console.log('Sessão criada com sucesso:', session);
     return {
       statusCode: 200,
       headers,
