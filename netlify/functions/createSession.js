@@ -10,7 +10,7 @@ exports.handler = async (event, context) => {
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };
-l
+
   // Verificar o método da solicitação
   if (event.httpMethod === 'OPTIONS') {
     // Responder a solicitação OPTIONS sem processar a função
