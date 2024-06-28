@@ -18,35 +18,57 @@ exports.handler = async (event, context) => {
   if (stripeEvent.type === 'checkout.session.completed') {
     const session = stripeEvent.data.object;
 
-    // Tente obter o UID do metadata
-    let uid = session.metadata ? session.metadata.uid : null;
+    // Obtém o UID do metadata
+    let uid = session.metadata.uid;
 
     if (!uid) {
-      // Tente obter o UID a partir do email do usuário no Firestore
+      // Se não houver UID no metadata, tenta obter o UID do Firestore pelo email do cliente
       const email = session.customer_email;
       const usersRef = db.collection('users');
-      const snapshot = await usersRef.where('email', '==', email).get();
-      if (!snapshot.empty) {
-        uid = snapshot.docs[0].id;
+      
+      try {
+        const snapshot = await usersRef.where('email', '==', email).get();
+        if (!snapshot.empty) {
+          uid = snapshot.docs[0].id;
+        }
+      } catch (error) {
+        console.error('Erro ao buscar UID pelo email:', error);
+        return {
+          statusCode: 500,
+          body: `Erro ao buscar UID pelo email: ${error.message}`,
+        };
       }
     }
 
     if (uid) {
       // Registro da compra no Firestore
       const userRef = db.collection('users').doc(uid);
-      await userRef.update({
-        purchases: admin.firestore.FieldValue.arrayUnion({
-          productName: 'Postiça realista iniciante e aperfeiçoamento',
-          purchaseDate: admin.firestore.Timestamp.now(),
-          sessionId: session.id,
-          amount: session.amount_total,
-          currency: session.currency,
-        }),
-      });
 
-      console.log(`Compra registrada para o usuário ${uid}`);
+      try {
+        await userRef.update({
+          purchases: admin.firestore.FieldValue.arrayUnion({
+            productName: 'Postiça realista iniciante e aperfeiçoamento',
+            purchaseDate: admin.firestore.Timestamp.now(),
+            sessionId: session.id,
+            amount: session.amount_total,
+            currency: session.currency,
+          }),
+        });
+
+        console.log(`Compra registrada para o usuário ${uid}`);
+      } catch (error) {
+        console.error('Erro ao registrar compra no Firestore:', error);
+        return {
+          statusCode: 500,
+          body: `Erro ao registrar compra no Firestore: ${error.message}`,
+        };
+      }
     } else {
       console.error('UID não encontrado para o email:', session.customer_email);
+      return {
+        statusCode: 400,
+        body: 'UID não encontrado para o email fornecido',
+      };
     }
   }
 
