@@ -1,5 +1,5 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { db, auth } = require('./firebaseAdmin'); // Certifique-se de que o Firebase Admin SDK está configurado
+const { db, auth, admin } = require('./firebaseAdmin'); // Certifique-se de que o Firebase Admin SDK está configurado
 
 exports.handler = async (event, context) => {
   console.log('Nova solicitação recebida:', event.httpMethod, event.path);
