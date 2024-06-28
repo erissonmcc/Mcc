@@ -16,6 +16,6 @@
     "express": "^4.19.2",
     "firebase-admin": "^12.2.0",
     "serverless-http": "^2.7.0",
-    "stripe": "^16.0.0"
+    "stripe": "^16.1.0"
   }
 }
