@@ -1,5 +1,5 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { db, auth, admin } = require('./firebaseAdmin');
+const { db, auth } = require('./firebaseAdmin');
 
 exports.handler = async (event, context) => {
   console.log('Nova solicitação recebida:', event.httpMethod, event.path);
@@ -47,41 +47,39 @@ exports.handler = async (event, context) => {
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
 
-    if (userDoc.exists) {
-      const userData = userDoc.data();
-      if (userData.email !== email || userData.displayName !== displayName) {
-        console.log('Email ou nome de usuário não correspondem');
-        return {
-          statusCode: 403,
-          headers,
-          body: JSON.stringify({ error: 'Email ou nome de usuário não autorizado' }),
-        };
-      }
-
-      if (userData.purchases && userData.purchases.some(purchase => purchase.productName === 'Postiça realista iniciante e aperfeiçoamento')) {
-        console.log('Usuário já comprou o curso. Recusando a criação da sessão.');
-        return {
-          statusCode: 400,
-          headers,
-          body: JSON.stringify({ error: 'Usuário já comprou o curso' }),
-        };
-      }
+    if (!userDoc.exists) {
+      console.log('Usuário não encontrado no Firestore');
+      return {
+        statusCode: 404,
+        headers,
+        body: JSON.stringify({ error: 'Usuário não encontrado' }),
+      };
     }
 
-    const existingSession = await db.collection('checkout_sessions')
-                                   .where('uid', '==', uid)
-                                   .where('productName', '==', 'Postiça realista iniciante e aperfeiçoamento')
-                                   .where('expiresAt', '>', new Date())
-                                   .limit(1)
-                                   .get();
+    const userData = userDoc.data();
+    if (userData.email !== email || userData.displayName !== displayName) {
+      console.log('Email ou nome de usuário não correspondem');
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({ error: 'Email ou nome de usuário não autorizado' }),
+      };
+    }
 
-    if (!existingSession.empty) {
-      const sessionData = existingSession.docs[0].data();
-      console.log('Sessão existente encontrada:', sessionData.id);
+    const existingSessionQuery = await db.collection('checkout_sessions')
+      .where('uid', '==', uid)
+      .where('productName', '==', 'Postiça realista iniciante e aperfeiçoamento')
+      .where('expiresAt', '>', new Date())
+      .limit(1)
+      .get();
+
+    if (!existingSessionQuery.empty) {
+      const existingSession = existingSessionQuery.docs[0].data();
+      console.log('Sessão existente encontrada:', existingSession.id);
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ id: sessionData.id }),
+        body: JSON.stringify({ id: existingSession.id }),
       };
     }
 
