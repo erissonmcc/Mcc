@@ -54,7 +54,29 @@ exports.handler = async (event, context) => {
       }
     }
 
-    // Criar sessão de checkout na Stripe
+    // Verificar se já existe uma sessão de checkout válida para este usuário
+    const sessionRef = db.collection('checkoutSessions').doc(uid);
+    const sessionDoc = await sessionRef.get();
+
+    if (sessionDoc.exists) {
+      const sessionData = sessionDoc.data();
+      const now = new Date();
+      const sessionCreationTime = new Date(sessionData.created);
+      const sessionExpirationTime = new Date(sessionCreationTime.getTime() + 24 * 60 * 60 * 1000);
+
+      if (now < sessionExpirationTime) {
+        console.log('Sessão de checkout existente encontrada e ainda válida:', sessionData.id);
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ id: sessionData.id }),
+        };
+      } else {
+        console.log('Sessão de checkout existente encontrada, mas expirou.');
+      }
+    }
+
+    // Criar nova sessão de checkout na Stripe
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card', 'boleto'],
       line_items: [{
@@ -79,6 +101,13 @@ exports.handler = async (event, context) => {
     });
 
     console.log('Sessão criada com sucesso:', session);
+
+    // Salvar a sessão de checkout no Firestore
+    await sessionRef.set({
+      id: session.id,
+      created: new Date().toISOString(),
+    });
+
     // Retornar ID da sessão criada
     return {
       statusCode: 200,
