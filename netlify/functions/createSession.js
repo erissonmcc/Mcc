@@ -56,7 +56,7 @@ exports.handler = async (event, context) => {
 
     // Criar sessão de checkout na Stripe
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card', 'boleto', 'pix', 'apple_pay', 'google_pay', 'alipay', 'sepa_debit', 'ideal', 'bancontact', 'giropay'],
+      payment_method_types: ['card', 'boleto', 'pix'],
       line_items: [{
         price_data: {
           currency: 'brl',
