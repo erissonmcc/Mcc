@@ -93,31 +93,30 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card', 'boleto'],
-      line_items: [{
-        price_data: {
-          currency: 'brl',
-          product_data: {
-            name: 'Postiça realista iniciante e aperfeiçoamento',
-          },
-          unit_amount: 3400,
-        },
-        quantity: 1,
-      }],
-      mode: 'payment',
-      success_url: 'http://localhost:2435/storage/emulated/0/gessica/public/index.html',
-      cancel_url: 'http://localhost:2435/storage/emulated/0/gessica/public/index.html',
-      customer_email: email,
-      billing_address_collection: {
-    required: ['name'], // Indica que o nome completo é obrigatório
-  },
-      metadata: {
-        uid: uid,
-        displayName: displayName,
+const session = await stripe.checkout.sessions.create({
+  payment_method_types: ['card', 'boleto'],
+  line_items: [{
+    price_data: {
+      currency: 'brl',
+      product_data: {
+        name: 'Postiça realista iniciante e aperfeiçoamento',
       },
-    });
-
+      unit_amount: 3400,
+    },
+    quantity: 1,
+  }],
+  mode: 'payment',
+  success_url: 'http://localhost:2435/storage/emulated/0/gessica/public/index.html',
+  cancel_url: 'http://localhost:2435/storage/emulated/0/gessica/public/index.html',
+  customer_email: email,
+  billing_address_collection: {
+    name: 'required', // Indica que o campo 'name' é obrigatório
+  },
+  metadata: {
+    uid: uid,
+    displayName: displayName,
+  },
+});
     await db.collection('checkout_sessions').doc(session.id).set({
       uid: uid,
       productName: 'Postiça realista iniciante e aperfeiçoamento',
