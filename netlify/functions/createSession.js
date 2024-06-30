@@ -1,5 +1,5 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { db, auth, admin } = require('./firebaseAdmin');
+const { db, auth } = require('./firebaseAdmin');
 
 exports.handler = async (event, context) => {
   console.log('Nova solicitação recebida:', event.httpMethod, event.path);
@@ -30,9 +30,9 @@ exports.handler = async (event, context) => {
 
   try {
     const requestBody = JSON.parse(event.body);
-    const { uid, email, displayName, token } = requestBody;
+    const { uid, email, displayName, token, fullName } = requestBody;
 
-    console.log('Dados do usuário:', { uid, email, displayName });
+    console.log('Dados do usuário:', { uid, email, displayName, fullName });
 
     const decodedToken = await auth.verifyIdToken(token);
     if (decodedToken.uid !== uid) {
@@ -93,30 +93,31 @@ exports.handler = async (event, context) => {
       };
     }
 
-const session = await stripe.checkout.sessions.create({
-  payment_method_types: ['card', 'boleto'],
-  line_items: [{
-    price_data: {
-      currency: 'brl',
-      product_data: {
-        name: 'Postiça realista iniciante e aperfeiçoamento',
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card', 'boleto'],
+      line_items: [{
+        price_data: {
+          currency: 'brl',
+          product_data: {
+            name: 'Postiça realista iniciante e aperfeiçoamento',
+          },
+          unit_amount: 3400,
+        },
+        quantity: 1,
+      }],
+      mode: 'payment',
+      success_url: 'http://localhost:2435/storage/emulated/0/gessica/public/index.html',
+      cancel_url: 'http://localhost:2435/storage/emulated/0/gessica/public/index.html',
+      customer_email: email,
+      billing_address_collection: {
+        requested: ['name'],
       },
-      unit_amount: 3400,
-    },
-    quantity: 1,
-  }],
-  mode: 'payment',
-  success_url: 'http://localhost:2435/storage/emulated/0/gessica/public/index.html',
-  cancel_url: 'http://localhost:2435/storage/emulated/0/gessica/public/index.html',
-  customer_email: email,
-  billing_address_collection: {
-    requested: ['name'], // Indica que o campo 'name' é obrigatório
-  },
-  metadata: {
-    uid: uid,
-    displayName: displayName,
-  },
-});
+      metadata: {
+        uid: uid,
+        displayName: displayName,
+      },
+    });
+
     await db.collection('checkout_sessions').doc(session.id).set({
       uid: uid,
       productName: 'Postiça realista iniciante e aperfeiçoamento',
