@@ -110,7 +110,7 @@ const session = await stripe.checkout.sessions.create({
   cancel_url: 'http://localhost:2435/storage/emulated/0/gessica/public/index.html',
   customer_email: email,
   billing_address_collection: {
-    name: 'required', // Indica que o campo 'name' é obrigatório
+    requested: ['name'], // Indica que o campo 'name' é obrigatório
   },
   metadata: {
     uid: uid,
