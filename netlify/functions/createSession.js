@@ -109,7 +109,9 @@ exports.handler = async (event, context) => {
       success_url: 'http://localhost:2435/storage/emulated/0/gessica/public/index.html',
       cancel_url: 'http://localhost:2435/storage/emulated/0/gessica/public/index.html',
       customer_email: email,
-      billing_address_collection: 'required',
+      billing_address_collection: {
+    required: ['name'], // Indica que o nome completo é obrigatório
+  },
       metadata: {
         uid: uid,
         displayName: displayName,
