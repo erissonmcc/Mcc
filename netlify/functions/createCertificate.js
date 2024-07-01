@@ -1,15 +1,17 @@
 const { admin } = require('./firebaseAdmin');
 const { PDFDocument } = require('pdf-lib');
-const fs = require('fs');
-const path = require('path');
+const { join } = require('path');
 
 exports.handler = async (event, context) => {
   try {
     // Obtém o nome completo do usuário a partir do corpo da solicitação
-    const fullName = 'ERISSIN MIQUEIAS COSTA CALHEIROS';
+    const fullName = 'TESTE';
+
+    // Caminho para o arquivo PDF base
+    const pdfPath = join(__dirname, 'certificado.pdf');
 
     // Carrega o PDF base
-    const pdfBytes = await fs.promises.readFile(path.resolve(__dirname, 'certificado.pdf'));
+    const pdfBytes = await fs.promises.readFile(pdfPath);
     const pdfDoc = await PDFDocument.load(pdfBytes);
 
     // Busca o formulário de texto "FULLNAME" no PDF
