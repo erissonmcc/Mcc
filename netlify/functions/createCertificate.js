@@ -1,17 +1,24 @@
 const { admin } = require('./firebaseAdmin');
 const { PDFDocument } = require('pdf-lib');
-const fs = require('fs').promises;
+const fs = require('fs');
 const path = require('path');
 
 exports.handler = async (event, context) => {
   const fullName = "ERISSON MIQUEIAS COSTA CALHEIROS"; // Nome completo para o certificado
 
   try {
-    // Caminho relativo para o arquivo PDF
-    const pdfPath = path.resolve(__dirname, './certificado.pdf');
+    // Caminho absoluto para o arquivo PDF
+    const pdfPath = path.resolve(__dirname, 'certificado.pdf');
 
-    // Carrega o PDF base
-    const pdfBytes = await fs.readFile(pdfPath);
+    // Carrega o PDF base usando createReadStream para garantir o caminho correto
+    const pdfBytes = await new Promise((resolve, reject) => {
+      const stream = fs.createReadStream(pdfPath);
+      const chunks = [];
+      stream.on('data', (chunk) => chunks.push(chunk));
+      stream.on('end', () => resolve(Buffer.concat(chunks)));
+      stream.on('error', (error) => reject(error));
+    });
+
     const pdfDoc = await PDFDocument.load(pdfBytes);
 
     // Encontra e preenche o campo de formulário "FULLNAME"
