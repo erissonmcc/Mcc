@@ -1,57 +1,65 @@
-const { admin } = require('./firebaseAdmin');
 const { PDFDocument } = require('pdf-lib');
 const fs = require('fs');
 const path = require('path');
+const admin = require('./firebaseAdmin'); // Importa o módulo Firebase Admin
+
+const { Storage } = require('@google-cloud/storage');
+const storage = new Storage();
 
 exports.handler = async (event, context) => {
-  const fullName = "ERISSON MIQUEIAS COSTA CALHEIROS"; // Nome completo para o certificado
-
-  try {
-    // Caminho absoluto para o arquivo PDF
+    // Caminho para o arquivo certificado.pdf dentro do diretório da função
     const pdfPath = path.resolve(__dirname, 'certificado.pdf');
-
-    // Carrega o PDF base usando createReadStream para garantir o caminho correto
-    const pdfBytes = await new Promise((resolve, reject) => {
-      const stream = fs.createReadStream(pdfPath);
-      const chunks = [];
-      stream.on('data', (chunk) => chunks.push(chunk));
-      stream.on('end', () => resolve(Buffer.concat(chunks)));
-      stream.on('error', (error) => reject(error));
-    });
-
-    const pdfDoc = await PDFDocument.load(pdfBytes);
-
-    // Encontra e preenche o campo de formulário "FULLNAME"
-    const formTextField = pdfDoc.getForm().getTextField('FULLNAME');
-    if (formTextField) {
-      formTextField.setText(fullName);
-    } else {
-      throw new Error('Campo de formulário "FULLNAME" não encontrado no PDF.');
+    
+    try {
+        // Carrega o arquivo PDF
+        const existingPdfBytes = fs.readFileSync(pdfPath);
+        
+        // Carrega o documento PDF
+        const pdfDoc = await PDFDocument.load(existingPdfBytes);
+        
+        // Modifica o campo de formulário "FULLNAME"
+        const formFieldName = 'FULLNAME';
+        const formFieldValue = 'ERISSON MIQUEIAS COSTA CALHEIROS';
+        
+        const form = pdfDoc.getForm();
+        const fields = form.getFields();
+        const fullNameField = fields.find(field => field.getName() === formFieldName);
+        
+        if (fullNameField) {
+            fullNameField.setText(formFieldValue);
+        } else {
+            throw new Error(`Campo de formulário "${formFieldName}" não encontrado.`);
+        }
+        
+        // Salva o PDF modificado como uma cópia
+        const modifiedPdfBytes = await pdfDoc.save();
+        
+        // Envia o arquivo modificado para o Firebase Storage
+        const bucket = storage.bucket('SEU_BUCKET_ID'); // Substitua pelo ID do seu bucket
+        const fileName = 'certificado_modificado.pdf';
+        const filePath = `pdf/${fileName}`;
+        
+        const file = bucket.file(filePath);
+        await file.save(modifiedPdfBytes, {
+            contentType: 'application/pdf',
+            metadata: {
+                metadata: {
+                    firebaseStorageDownloadTokens: Date.now(),
+                },
+            },
+        });
+        
+        // URL do arquivo no Firebase Storage
+        const downloadUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+        
+        return {
+            statusCode: 200,
+            body: JSON.stringify({ downloadUrl }),
+        };
+    } catch (error) {
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ error: error.message }),
+        };
     }
-
-    // Salva o PDF modificado
-    const modifiedPdfBytes = await pdfDoc.save();
-
-    // Salva o PDF no Firebase Storage
-    const storage = admin.storage();
-    const bucket = storage.bucket();
-    const file = bucket.file(`certificados/${fullName}.pdf`);
-
-    await file.save(modifiedPdfBytes, {
-      contentType: 'application/pdf',
-    });
-
-    console.log(`Certificado para ${fullName} gerado e salvo no Firebase Storage.`);
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ message: `Certificado para ${fullName} gerado e salvo.` }),
-    };
-  } catch (error) {
-    console.error('Erro ao gerar ou salvar o certificado:', error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: `Erro ao gerar ou salvar o certificado: ${error.message}` }),
-    };
-  }
 };
