@@ -8,7 +8,8 @@ const storage = new Storage();
 
 exports.handler = async (event, context) => {
     // Caminho para o arquivo certificado.pdf dentro do diretório da função
-    const pdfPath = path.resolve(__dirname, 'certificado.pdf');
+    const pdfPath = path.resolve(__dirname, '..', 'certificado.pdf');
+    // O ".." volta um nível acima do diretório atual, que é onde o arquivo certificado.pdf está localizado
     
     try {
         // Carrega o arquivo PDF
