@@ -1,5 +1,5 @@
 const { PDFDocument } = require('pdf-lib');
-const fs = require('fs');
+const fs = require('fs').promises;
 const path = require('path');
 const admin = require('./firebaseAdmin'); // Importa o módulo Firebase Admin
 
@@ -8,12 +8,11 @@ const storage = new Storage();
 
 exports.handler = async (event, context) => {
     // Caminho para o arquivo certificado.pdf dentro do diretório da função
-    const pdfPath = path.resolve(__dirname, '..', 'certificado.pdf');
-    // O ".." volta um nível acima do diretório atual, que é onde o arquivo certificado.pdf está localizado
+    const pdfPath = path.resolve(__dirname, 'certificado.pdf');
     
     try {
         // Carrega o arquivo PDF
-        const existingPdfBytes = fs.readFileSync(pdfPath);
+        const existingPdfBytes = await fs.readFile(pdfPath);
         
         // Carrega o documento PDF
         const pdfDoc = await PDFDocument.load(existingPdfBytes);
