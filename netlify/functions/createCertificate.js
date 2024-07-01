@@ -1,24 +1,22 @@
 const { admin } = require('./firebaseAdmin');
 const { PDFDocument } = require('pdf-lib');
-const fs = require('fs').promises;  // Importa o módulo fs para operações de arquivo
+const fs = require('fs').promises;
 const { join } = require('path');
 
 exports.handler = async (event, context) => {
-  // Define o nome completo a ser utilizado
-  const fullName = "ERISSON MIQUEIAS COSTA CALHEIROS"; // Aqui você define o nome completo desejado
+  const fullName = "ERISSON MIQUEIAS COSTA CALHEIROS"; // Nome completo para o certificado
 
   try {
-    // Caminho para o arquivo PDF base
+    // Caminho absoluto para o arquivo PDF
     const pdfPath = join(__dirname, 'certificado.pdf');
 
     // Carrega o PDF base
     const pdfBytes = await fs.readFile(pdfPath);
     const pdfDoc = await PDFDocument.load(pdfBytes);
 
-    // Busca o formulário de texto "FULLNAME" no PDF
+    // Encontra e preenche o campo de formulário "FULLNAME"
     const formTextField = pdfDoc.getForm().getTextField('FULLNAME');
     if (formTextField) {
-      // Substitui o valor do formulário de texto pelo nome completo
       formTextField.setText(fullName);
     } else {
       throw new Error('Campo de formulário "FULLNAME" não encontrado no PDF.');
