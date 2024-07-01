@@ -1,14 +1,14 @@
 const { admin } = require('./firebaseAdmin');
 const { PDFDocument } = require('pdf-lib');
 const fs = require('fs').promises;
-const { join } = require('path');
+const path = require('path');
 
 exports.handler = async (event, context) => {
   const fullName = "ERISSON MIQUEIAS COSTA CALHEIROS"; // Nome completo para o certificado
 
   try {
     // Caminho absoluto para o arquivo PDF
-    const pdfPath = join(__dirname, 'certificado.pdf');
+    const pdfPath = path.resolve(__dirname, 'certificado.pdf');
 
     // Carrega o PDF base
     const pdfBytes = await fs.readFile(pdfPath);
