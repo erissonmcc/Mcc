@@ -7,8 +7,8 @@ exports.handler = async (event, context) => {
   const fullName = "ERISSON MIQUEIAS COSTA CALHEIROS"; // Nome completo para o certificado
 
   try {
-    // Caminho absoluto para o arquivo PDF
-    const pdfPath = path.resolve(__dirname, 'certificado.pdf');
+    // Caminho relativo para o arquivo PDF
+    const pdfPath = path.resolve(__dirname, './certificado.pdf');
 
     // Carrega o PDF base
     const pdfBytes = await fs.readFile(pdfPath);
