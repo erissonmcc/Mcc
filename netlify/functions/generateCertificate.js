@@ -5,7 +5,7 @@ const { admin, bucket } = require('./firebaseAdmin');
 exports.handler = async (event, context) => {
     try {
         const data = JSON.parse(event.body);
-        const { userName } = data;
+        const { userName, uid } = data;
 
         if (!userName) {
             throw new Error('Nome do usuário não fornecido.');
@@ -77,9 +77,28 @@ exports.handler = async (event, context) => {
 
         console.log('PDF modificado enviado para o Firebase Storage:', pdfFileName);
 
+        // Obter a URL do PDF modificado
+        const [url] = await bucket.file(`pdf/${pdfFileName}`).getSignedUrl({
+            action: 'read',
+            expires: '03-09-2024', // Ajuste conforme necessário
+        });
+
+        console.log('URL do PDF modificado:', url);
+
+        // Enviar notificação para o UID do usuário
+        await admin.firestore().collection('users').doc(uid).collection('notifications').add({
+            title: 'Seu certificado está pronto!',
+            description: 'Clique aqui para baixar seu certificado.',
+            photoUrl: url,
+            pdfUrl: url, // Adicionando a URL do PDF no parâmetro pdfUrl
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        console.log('Notificação enviada com sucesso para:', uid);
+
         return {
             statusCode: 200,
-            body: JSON.stringify({ message: 'PDF modificado enviado para o Firebase Storage', fileName: pdfFileName }),
+            body: JSON.stringify({ message: 'PDF modificado enviado para o Firebase Storage e notificação enviada.', fileName: pdfFileName }),
         };
     } catch (error) {
         console.error('Erro ao gerar certificado:', error);
