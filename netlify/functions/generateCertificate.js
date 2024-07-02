@@ -77,10 +77,13 @@ exports.handler = async (event, context) => {
 
         console.log('PDF modificado enviado para o Firebase Storage:', pdfFileName);
 
-        // Obter a URL do PDF modificado com uma expiração futura (10 minutos)
+        // Obter a URL do PDF modificado com expiração de 30 dias
+        const expirationDate = new Date();
+        expirationDate.setDate(expirationDate.getDate() + 30);
+
         const [url] = await bucket.file(`pdf/${pdfFileName}`).getSignedUrl({
             action: 'read',
-            expires: Date.now() + 10 * 60 * 1000, // Expiração 10 minutos à frente
+            expires: expirationDate,
         });
 
         console.log('URL do PDF modificado:', url);
@@ -89,8 +92,9 @@ exports.handler = async (event, context) => {
         await admin.firestore().collection('users').doc(uid).collection('notifications').add({
             title: 'Seu certificado está pronto!',
             description: 'Clique aqui para baixar seu certificado.',
-            photoUrl: url,
+            photoUrl: 'assets/icon/pdf.png',
             pdfUrl: url, // Adicionando a URL do PDF no parâmetro pdfUrl
+            type: 'certificatePdf', // Adicionando o parâmetro type
             timestamp: admin.firestore.FieldValue.serverTimestamp()
         });
 
