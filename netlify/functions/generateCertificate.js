@@ -91,7 +91,7 @@ exports.handler = async (event, context) => {
         // Enviar notificação para o UID do usuário
         await admin.firestore().collection('users').doc(uid).collection('notifications').add({
             title: 'Seu certificado está pronto!',
-            description: 'Clique aqui para baixar seu certificado.',
+            description: 'Agradecemos por escolher nosso curso! Estamos felizes em informar que seu certificado está pronto para download. Clique aqui para baixá-lo e aproveite ao máximo sua jornada de aprendizado conosco.',
             photoUrl: 'assets/icon/pdf.png',
             pdfUrl: url, // Adicionando a URL do PDF no parâmetro pdfUrl
             type: 'certificatePdf', // Adicionando o parâmetro type
