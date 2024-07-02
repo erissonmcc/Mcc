@@ -1,47 +1,71 @@
 const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 const axios = require('axios');
-const { admin, bucket, db } = require('./firebaseAdmin');
+const { admin, bucket } = require('./firebaseAdmin');
 
 exports.handler = async (event, context) => {
     try {
-        const { uid, userName } = JSON.parse(event.body);
+        const data = JSON.parse(event.body);
+        const { userName } = data;
 
-        if (!userName || !uid) {
-            throw new Error('Nome do usuário ou UID não fornecido.');
+        if (!userName) {
+            throw new Error('Nome do usuário não fornecido.');
         }
 
+        console.log('Iniciando geração do certificado para:', userName);
+
+        // URL do arquivo PDF base
         const pdfUrl = 'https://example.com/path/to/certificado-base.pdf';
+
+        // Baixa o conteúdo do arquivo PDF
         const response = await axios.get(pdfUrl, {
             responseType: 'arraybuffer',
-            timeout: 8000,
+            timeout: 8000, // Limite de tempo de 8 segundos para o download
         });
 
+        console.log('Arquivo PDF base baixado com sucesso');
+
+        // Lê o conteúdo do PDF a partir do arraybuffer
         const existingPdfBytes = response.data;
+
+        // Carrega o documento PDF base
         const pdfDoc = await PDFDocument.load(existingPdfBytes);
+
+        // Pega a primeira página do PDF base (ou ajuste conforme necessário)
         const pages = pdfDoc.getPages();
         const firstPage = pages[0];
 
+        // Define a fonte Helvetica
         const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-        const signatureText = userName;
-        const fontSize = 10;
 
+        // Define o texto da assinatura
+        const signatureText = userName;
+        const fontSize = 10; // Ajuste o tamanho da fonte
+
+        // Calcula a largura do texto para centralização
         const textWidth = helveticaFont.widthOfTextAtSize(signatureText, fontSize);
         const pageWidth = firstPage.getWidth();
         const pageHeight = firstPage.getHeight();
-        const x = (pageWidth - textWidth) / 2;
-        const y = (pageHeight - fontSize) / 2;
 
+        // Coordenadas X e Y para centralizar o texto
+        const x = (pageWidth - textWidth) / 2;
+        const y = (pageHeight - fontSize) / 2; // Centralizado verticalmente
+
+        // Adiciona o texto da assinatura na página
         firstPage.drawText(signatureText, {
             x: x,
             y: y,
             size: fontSize,
             font: helveticaFont,
-            color: rgb(0, 0, 0),
+            color: rgb(0, 0, 0), // Cor preta
         });
 
+        // Salva o PDF modificado como uma cópia
         const modifiedPdfBytes = await pdfDoc.save();
+
+        // Nome do arquivo PDF no Firebase Storage
         const pdfFileName = `${userName.replace(/\s+/g, '_')}-certificado.pdf`;
 
+        // Upload do PDF modificado para o Firebase Storage
         await bucket.file(`pdf/${pdfFileName}`).save(modifiedPdfBytes, {
             contentType: 'application/pdf',
             metadata: {
@@ -51,22 +75,14 @@ exports.handler = async (event, context) => {
             },
         });
 
-        const pdfDownloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/pdf%2F${encodeURIComponent(pdfFileName)}?alt=media&token=${Date.now()}`;
-
-        const notificationRef = db.collection('users').doc(uid).collection('notifications').doc();
-        await notificationRef.set({
-            title: 'Certificado Gerado',
-            description: 'Seu certificado foi gerado com sucesso. Clique para baixar.',
-            photoUrl: 'https://firebasestorage.googleapis.com/v0/b/nail-art-by-gessica.appspot.com/o/icon%2Fcertificado.png?alt=media&token=f294abf5-93e8-4bb5-b3e2-ccdebac9ebf5',
-            pdfUrl: pdfDownloadUrl,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
+        console.log('PDF modificado enviado para o Firebase Storage:', pdfFileName);
 
         return {
             statusCode: 200,
-            body: JSON.stringify({ message: 'PDF modificado enviado para o Firebase Storage e notificação criada', fileName: pdfFileName }),
+            body: JSON.stringify({ message: 'PDF modificado enviado para o Firebase Storage', fileName: pdfFileName }),
         };
     } catch (error) {
+        console.error('Erro ao gerar certificado:', error);
         return {
             statusCode: 500,
             body: JSON.stringify({ error: error.message }),
