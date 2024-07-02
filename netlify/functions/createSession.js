@@ -30,9 +30,9 @@ exports.handler = async (event, context) => {
 
   try {
     const requestBody = JSON.parse(event.body);
-    const { uid, email, displayName, token, fullName } = requestBody;
+    const { uid, email, displayName, token } = requestBody;
 
-    console.log('Dados do usuário:', { uid, email, displayName, fullName });
+    console.log('Dados do usuário:', { uid, email, displayName });
 
     const decodedToken = await auth.verifyIdToken(token);
     if (decodedToken.uid !== uid) {
@@ -109,7 +109,7 @@ exports.handler = async (event, context) => {
       success_url: 'http://localhost:2435/storage/emulated/0/gessica/public/index.html',
       cancel_url: 'http://localhost:2435/storage/emulated/0/gessica/public/index.html',
       customer_email: email,
-      billing_address_collection: 'required'
+      billing_address_collection: 'required',
       metadata: {
         uid: uid,
         displayName: displayName,
