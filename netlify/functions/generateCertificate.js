@@ -14,7 +14,7 @@ exports.handler = async (event, context) => {
         console.log('Iniciando geração do certificado para:', userName);
 
         // URL do arquivo PDF base
-        const pdfUrl = 'https://example.com/path/to/certificado-base.pdf';
+        const pdfUrl = 'https://drive.usercontent.google.com/u/0/uc?id=19Aht8l8dCpLyl9as9f52t97nZFuAJwEM&export=download';
 
         // Baixa o conteúdo do arquivo PDF
         const response = await axios.get(pdfUrl, {
