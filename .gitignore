@@ -10,3 +10,6 @@ logs/
 
 # Ignore Firebase service account key
 netlify/functions/config/serviceAccountKey.json
+
+# Local Netlify folder
+.netlify
