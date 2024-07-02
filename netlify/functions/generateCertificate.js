@@ -77,10 +77,10 @@ exports.handler = async (event, context) => {
 
         console.log('PDF modificado enviado para o Firebase Storage:', pdfFileName);
 
-        // Obter a URL do PDF modificado
+        // Obter a URL do PDF modificado com uma expiração futura (10 minutos)
         const [url] = await bucket.file(`pdf/${pdfFileName}`).getSignedUrl({
             action: 'read',
-            expires: '03-09-2024', // Ajuste conforme necessário
+            expires: Date.now() + 10 * 60 * 1000, // Expiração 10 minutos à frente
         });
 
         console.log('URL do PDF modificado:', url);
