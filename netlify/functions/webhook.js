@@ -58,8 +58,8 @@ exports.handler = async (event, context) => {
                 console.log(`Compra registrada para o usuário ${uid}`);
 
                 // Chame a segunda função para gerar o certificado
-                const createCertificateUrl = process.env.CREATE_CERTIFICATE_URL;
-                const response = await fetch(createCertificateUrl, {
+                const generateCertificateUrl = 'https://nails-art-by-gessica.netlify.app/.netlify/functions/generateCertificate';
+                const response = await fetch(generateCertificateUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ uid, userName })
