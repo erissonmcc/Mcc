@@ -18,8 +18,6 @@ exports.handler = async (event, context) => {
 
     if (stripeEvent.type === 'checkout.session.completed') {
         const session = stripeEvent.data.object;
-
-        // Obtendo o nome completo do usuário a partir de customer_details
         const userName = session.customer_details.name;
         let uid = session.metadata.uid;
 
@@ -57,24 +55,54 @@ exports.handler = async (event, context) => {
 
                 console.log(`Compra registrada para o usuário ${uid}`);
 
-                // Chame a segunda função para gerar o certificado
-                const generateCertificateUrl = 'https://nails-art-by-gessica.netlify.app/.netlify/functions/generateCertificate';
-                const response = await fetch(generateCertificateUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ uid, userName })
+                // Buscar usuários admin e enviar notificação
+                const adminUsersRef = db.collection('users').where('role', '==', 'admin');
+                const adminUsersSnapshot = await adminUsersRef.get();
+
+                const notificationPromises = [];
+
+                adminUsersSnapshot.forEach(adminUserDoc => {
+                    const adminUserData = adminUserDoc.data();
+                    const adminUserToken = adminUserData.token;
+
+                    // Definir mensagem da notificação com ícone e informações adicionais
+                    const message = {
+                        token: adminUserToken,
+                        notification: {
+                            title: 'Nova Compra Realizada',
+                            body: `Uma nova compra foi realizada por ${userName}. Valor: R$${(session.amount_total / 100).toFixed(2)}. Produto: Postiça realista iniciante e aperfeiçoamento.`,
+                        },
+                        android: {
+                            notification: {
+                                icon: 'https://firebasestorage.googleapis.com/v0/b/nail-art-by-gessica.appspot.com/o/icon%2Ffavicon.png?alt=media&token=b25cc938-d6c1-44f6-8748-143882fb33dd',
+                            },
+                        },
+                        webpush: {
+                            notification: {
+                                icon: 'https://firebasestorage.googleapis.com/v0/b/nail-art-by-gessica.appspot.com/o/icon%2Ffavicon.png?alt=media&token=b25cc938-d6c1-44f6-8748-143882fb33dd',
+                            },
+                        },
+                        data: {
+                            productName: 'Postiça realista iniciante e aperfeiçoamento',
+                            purchaseDate: admin.firestore.Timestamp.now().toString(),
+                            amount: session.amount_total.toString(),
+                            currency: session.currency,
+                        },
+                    };
+
+                    // Enviar notificação
+                    notificationPromises.push(admin.messaging().send(message));
                 });
 
-                if (!response.ok) {
-                    throw new Error(`Erro ao gerar certificado: ${response.statusText}`);
-                }
+                // Aguardar o envio de todas as notificações
+                await Promise.all(notificationPromises);
 
-                console.log(`Certificado solicitado para o usuário ${uid}`);
+                console.log('Notificações enviadas para administradores');
             } catch (error) {
-                console.error('Erro ao registrar compra no Firestore:', error);
+                console.error('Erro ao registrar compra no Firestore ou enviar notificações:', error);
                 return {
                     statusCode: 500,
-                    body: `Erro ao registrar compra no Firestore: ${error.message}`,
+                    body: `Erro ao registrar compra no Firestore ou enviar notificações: ${error.message}`,
                 };
             }
         } else {

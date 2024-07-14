@@ -17,6 +17,7 @@
     "express": "^4.19.2",
     "firebase-admin": "^12.2.0",
     "node-fetch": "^2.6.10",
+    "nodemailer": "^6.9.14",
     "pdf-lib": "^1.17.1",
     "serverless-http": "^2.7.0",
     "stripe": "^16.1.0"
