@@ -22,7 +22,7 @@ exports.handler = async (event, context) => {
         const userName = session.customer_details.name;
         const userEmail = session.customer_email;
         let uid = session.metadata.uid;
-
+        console.log('Email do usuario', userEmail);
         if (!uid) {
             const usersRef = db.collection('users');
             
@@ -67,7 +67,7 @@ exports.handler = async (event, context) => {
 
                 // Definir a mensagem do e-mail
                 const mailOptions = {
-                    from: 'gessycanailsart@gmail.com',
+                    from: process.env.EMAIL_USER,
                     to: userEmail,
                     subject: 'Bem-vindo ao curso de Postiça Realista!',
                     text: `Olá ${userName}!\n\nQue prazer ter você a bordo! 🎉 Parabéns pela decisão de investir no curso "Postiça Realista Iniciante e Aperfeiçoamento para Iniciantes". Estamos entusiasmados por ter você nesta jornada conosco.\n\nNossos cursos são cuidadosamente planejados para ajudá-lo a dominar as técnicas de postiça de forma prática e divertida. Sabemos que você está ansioso para começar e queremos garantir que você tenha a melhor experiência possível.\n\nNeste primeiro módulo você encontrará conteúdos essenciais e dicas valiosas para ajudá-lo a seguir em frente com confiança. Se você tiver alguma dúvida ou precisar de ajuda, não hesite em nos contatar. Estamos aqui para apoiá-lo.\n\nAproveite cada momento e lembre-se: todo desafio é uma oportunidade de aprender. Estamos ansiosos para ver seu progresso e sucesso!\n\nBem-vindo ao nosso time e vamos arrasar juntos!\n\nCom amor,\nUnhas Jéssica!`,
