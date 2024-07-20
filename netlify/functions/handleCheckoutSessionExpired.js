@@ -6,8 +6,8 @@ exports.handler = async (event, context) => {
     let stripeEvent;
 
     try {
-        // Parse o corpo da solicitação se necessário
-        const body = JSON.parse(event.body);
+        // Certifique-se de que o corpo seja uma string bruta
+        const body = typeof event.body === 'string' ? event.body : JSON.stringify(event.body);
 
         // Construa o evento Stripe usando o corpo e a assinatura
         stripeEvent = stripe.webhooks.constructEvent(body, stripeSignature, process.env.STRIPE_WEBHOOK_SECRET);
