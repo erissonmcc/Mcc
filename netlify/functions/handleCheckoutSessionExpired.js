@@ -3,12 +3,20 @@ const nodemailer = require('nodemailer');
 
 exports.handler = async (event, context) => {
     const stripeSignature = event.headers['stripe-signature'];
+    const body = event.body;
+
+    if (typeof body === 'object') {
+        // Verifica se o corpo não está sendo convertido para objeto
+        console.error('O corpo da solicitação não é uma string bruta');
+        return {
+            statusCode: 400,
+            body: 'Webhook Error: O corpo da solicitação não é uma string bruta',
+        };
+    }
+
     let stripeEvent;
 
     try {
-        // Certifique-se de que o corpo seja uma string bruta
-        const body = typeof event.body === 'string' ? event.body : JSON.stringify(event.body);
-
         // Construa o evento Stripe usando o corpo e a assinatura
         stripeEvent = stripe.webhooks.constructEvent(body, stripeSignature, process.env.STRIPE_WEBHOOK_SECRET);
     } catch (err) {
