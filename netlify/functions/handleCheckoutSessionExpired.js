@@ -6,7 +6,11 @@ exports.handler = async (event, context) => {
     let stripeEvent;
 
     try {
-        stripeEvent = stripe.webhooks.constructEvent(event.body, stripeSignature, process.env.STRIPE_WEBHOOK_SECRET);
+        // Parse o corpo da solicitação se necessário
+        const body = JSON.parse(event.body);
+
+        // Construa o evento Stripe usando o corpo e a assinatura
+        stripeEvent = stripe.webhooks.constructEvent(body, stripeSignature, process.env.STRIPE_WEBHOOK_SECRET);
     } catch (err) {
         console.error('Erro ao verificar assinatura do webhook:', err.message);
         return {
