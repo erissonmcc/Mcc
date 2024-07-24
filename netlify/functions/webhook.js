@@ -1,6 +1,6 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { db, admin } = require('./firebaseAdmin');
-const nodemailer = require('nodemailer'); // Adicionando o módulo Nodemailer
+const nodemailer = require('nodemailer');
 const fetch = require('node-fetch');
 
 exports.handler = async (event, context) => {
@@ -17,15 +17,15 @@ exports.handler = async (event, context) => {
         };
     }
 
+    const session = stripeEvent.data.object;
+    const userName = session.customer_details.name;
+    const userEmail = session.customer_email;
+
     if (stripeEvent.type === 'checkout.session.completed') {
-        const session = stripeEvent.data.object;
-        const userName = session.customer_details.name;
-        const userEmail = session.customer_email;
         let uid = session.metadata.uid;
-        console.log('Email do usuario', userEmail);
+        console.log('Email do usuário', userEmail);
         if (!uid) {
             const usersRef = db.collection('users');
-            
             try {
                 const snapshot = await usersRef.where('email', '==', userEmail).get();
                 if (!snapshot.empty) {
@@ -56,16 +56,14 @@ exports.handler = async (event, context) => {
 
                 console.log(`Compra registrada para o usuário ${uid}`);
 
-                // Configurar o transporte de e-mail
                 const transporter = nodemailer.createTransport({
-                    service: 'gmail', // ou outro serviço de e-mail
+                    service: 'gmail',
                     auth: {
                         user: process.env.EMAIL_USER,
                         pass: process.env.EMAIL_PASS,
                     },
                 });
 
-                // Definir a mensagem do e-mail
                 const mailOptions = {
                     from: process.env.EMAIL_USER,
                     to: userEmail,
@@ -73,12 +71,9 @@ exports.handler = async (event, context) => {
                     text: `Olá ${userName}!\n\nQue prazer ter você a bordo! 🎉 Parabéns pela decisão de investir no curso "Postiça Realista Iniciante e Aperfeiçoamento para Iniciantes". Estamos entusiasmados por ter você nesta jornada conosco.\n\nNossos cursos são cuidadosamente planejados para ajudá-lo a dominar as técnicas de postiça de forma prática e divertida. Sabemos que você está ansioso para começar e queremos garantir que você tenha a melhor experiência possível.\n\nNeste primeiro módulo você encontrará conteúdos essenciais e dicas valiosas para ajudá-lo a seguir em frente com confiança. Se você tiver alguma dúvida ou precisar de ajuda, não hesite em nos contatar. Estamos aqui para apoiá-lo.\n\nAproveite cada momento e lembre-se: todo desafio é uma oportunidade de aprender. Estamos ansiosos para ver seu progresso e sucesso!\n\nBem-vindo ao nosso time e vamos arrasar juntos!\n\nCom amor,\nUnhas Jéssica!`,
                 };
 
-                // Enviar o e-mail
                 await transporter.sendMail(mailOptions);
-
                 console.log('E-mail de boas-vindas enviado para o aluno');
 
-                // Buscar usuários admin e enviar notificação
                 const adminUsersRef = db.collection('users').where('role', '==', 'admin');
                 const adminUsersSnapshot = await adminUsersRef.get();
 
@@ -88,7 +83,6 @@ exports.handler = async (event, context) => {
                     const adminUserData = adminUserDoc.data();
                     const adminUserToken = adminUserData.token;
 
-                    // Definir mensagem da notificação com ícone e informações adicionais
                     const message = {
                         token: adminUserToken,
                         notification: {
@@ -113,13 +107,10 @@ exports.handler = async (event, context) => {
                         },
                     };
 
-                    // Enviar notificação
                     notificationPromises.push(admin.messaging().send(message));
                 });
 
-                // Aguardar o envio de todas as notificações
                 await Promise.all(notificationPromises);
-
                 console.log('Notificações enviadas para administradores');
             } catch (error) {
                 console.error('Erro ao registrar compra no Firestore, enviar e-mail ou notificações:', error);
@@ -133,6 +124,73 @@ exports.handler = async (event, context) => {
             return {
                 statusCode: 400,
                 body: 'UID não encontrado para o email fornecido',
+            };
+        }
+    } else if (stripeEvent.type === 'checkout.session.expired') {
+        console.log(`Sessão expirada para o usuário ${userName} (${userEmail})`);
+
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS,
+            },
+        });
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: userEmail,
+            subject: 'Parece que você não concluiu sua matrícula',
+            text: `Olá, ${userName}!\n\nPercebi que você começou a se matricular em nosso site, mas algo te impediu de finalizar. Vamos resolver isso juntos?\n\nResponda com o plano desejado e a forma de pagamento (cartão de crédito ou boleto) que eu te ajudo a finalizar a matrícula.\n\nCom carinho,\nGessyca 💅`,
+        };
+
+        try {
+            await transporter.sendMail(mailOptions);
+            console.log('Email enviado para o usuário sobre a sessão expirada');
+        } catch (error) {
+            console.error('Erro ao enviar email para o usuário sobre a sessão expirada:', error);
+            return {
+                statusCode: 500,
+                body: `Erro ao enviar email para o usuário sobre a sessão expirada: ${error.message}`,
+            };
+        }
+    } else if (stripeEvent.type === 'charge.refunded') {
+        const refund = stripeEvent.data.object;
+        const chargeId = refund.charge;
+        
+        try {
+            // Buscar a sessão de checkout original
+            const charge = await stripe.charges.retrieve(chargeId);
+            const session = await stripe.checkout.sessions.retrieve(charge.metadata.session_id);
+            const userName = session.customer_details.name;
+            const userEmail = session.customer_email;
+
+            // Configurar o transporte de e-mail
+            const transporter = nodemailer.createTransport({
+                service: 'gmail', // ou outro serviço de e-mail
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_PASS,
+                },
+            });
+
+            // Definir a mensagem do e-mail
+            const mailOptions = {
+                from: process.env.EMAIL_USER,
+                to: userEmail,
+                subject: 'Seu reembolso foi processado',
+                text: `Olá ${userName},\n\nInformamos que seu reembolso foi processado com sucesso. O valor de R$${(refund.amount / 100).toFixed(2)} foi reembolsado para o seu método de pagamento original.\n\nSe você tiver alguma dúvida ou precisar de mais informações, não hesite em nos contatar.\n\nCom carinho,\n[Seu Nome/Equipe]`,
+            };
+
+            // Enviar o e-mail
+            await transporter.sendMail(mailOptions);
+
+            console.log('E-mail de reembolso enviado para o usuário');
+        } catch (error) {
+            console.error('Erro ao processar evento de reembolso:', error);
+            return {
+                statusCode: 500,
+                body: `Erro ao processar evento de reembolso: ${error.message}`,
             };
         }
     }

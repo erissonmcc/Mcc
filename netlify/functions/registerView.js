@@ -110,7 +110,7 @@ exports.handler = async function (event, context) {
     });
 
     // Verificar e criar o documento do vídeo, se necessário
-    const videoDocRef = db.collection('course').doc(courseId).collection('videos').doc(videoId);
+    const videoDocRef = db.collection('courses').doc(courseId).collection('videos').doc(videoId);
     const videoDocSnap = await videoDocRef.get();
     
     if (!videoDocSnap.exists) {

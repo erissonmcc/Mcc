@@ -95,17 +95,16 @@ exports.handler = async function (event, context) {
 
     const likeDocRef = db.collection('videoLikes').doc(`${videoId}_${userId}`);
     const dislikeDocRef = db.collection('videoDislikes').doc(`${videoId}_${userId}`);
-    const videoDocRef = db.collection('courses').doc(courseId).collection('videos').doc(videoId);
 
     try {
       await db.runTransaction(async (transaction) => {
-        // Leituras
         const likeDoc = await transaction.get(likeDocRef);
         const dislikeDoc = await transaction.get(dislikeDocRef);
+
+        const videoDocRef = db.collection('courses').doc(courseId).collection('videos').doc(videoId);
         const videoDoc = await transaction.get(videoDocRef);
         const videoData = videoDoc.data() || { likes: 0, dislikes: 0 };
 
-        // Lógica de like/dislike
         if (action === 'like') {
           if (likeDoc.exists) {
             throw new Error('Você já curtiu este vídeo.');
@@ -118,12 +117,15 @@ exports.handler = async function (event, context) {
 
           if (dislikeDoc.exists) {
             transaction.delete(dislikeDocRef);
+            transaction.update(videoDocRef, { dislikes: admin.firestore.FieldValue.increment(-1) });
           }
+          transaction.update(videoDocRef, { likes: admin.firestore.FieldValue.increment(1) });
         } else if (action === 'unlike') {
           if (!likeDoc.exists) {
             throw new Error('Você ainda não curtiu este vídeo.');
           }
           transaction.delete(likeDocRef);
+          transaction.update(videoDocRef, { likes: admin.firestore.FieldValue.increment(-1) });
         } else if (action === 'dislike') {
           if (dislikeDoc.exists) {
             throw new Error('Você já descurtiu este vídeo.');
@@ -136,27 +138,17 @@ exports.handler = async function (event, context) {
 
           if (likeDoc.exists) {
             transaction.delete(likeDocRef);
+            transaction.update(videoDocRef, { likes: admin.firestore.FieldValue.increment(-1) });
           }
+          transaction.update(videoDocRef, { dislikes: admin.firestore.FieldValue.increment(1) });
         } else if (action === 'undislike') {
           if (!dislikeDoc.exists) {
             throw new Error('Você ainda não descurtiu este vídeo.');
           }
           transaction.delete(dislikeDocRef);
+          transaction.update(videoDocRef, { dislikes: admin.firestore.FieldValue.increment(-1) });
         } else {
           throw new Error('Ação inválida');
-        }
-
-        // Atualização dos contadores
-        if (action === 'like') {
-          transaction.update(videoDocRef, {
-            likes: admin.firestore.FieldValue.increment(1),
-            dislikes: admin.firestore.FieldValue.increment(dislikeDoc.exists ? -1 : 0),
-          });
-        } else if (action === 'dislike') {
-          transaction.update(videoDocRef, {
-            dislikes: admin.firestore.FieldValue.increment(1),
-            likes: admin.firestore.FieldValue.increment(likeDoc.exists ? -1 : 0),
-          });
         }
       });
 
