@@ -157,13 +157,14 @@ exports.handler = async (event, context) => {
     } else if (stripeEvent.type === 'charge.refunded') {
         const refund = stripeEvent.data.object;
         const chargeId = refund.charge;
-        
+
         try {
             // Buscar a sessão de checkout original
             const charge = await stripe.charges.retrieve(chargeId);
             const session = await stripe.checkout.sessions.retrieve(charge.metadata.session_id);
             const userName = session.customer_details.name;
             const userEmail = session.customer_email;
+            const uid = session.metadata.uid;
 
             // Configurar o transporte de e-mail
             const transporter = nodemailer.createTransport({
@@ -179,13 +180,25 @@ exports.handler = async (event, context) => {
                 from: process.env.EMAIL_USER,
                 to: userEmail,
                 subject: 'Seu reembolso foi processado',
-                text: `Olá ${userName},\n\nInformamos que seu reembolso foi processado com sucesso. O valor de R$${(refund.amount / 100).toFixed(2)} foi reembolsado para o seu método de pagamento original.\n\nSe você tiver alguma dúvida ou precisar de mais informações, não hesite em nos contatar.\n\nCom carinho,\n[Seu Nome/Equipe]`,
+                text: `Olá ${userName},\n\nInformamos que seu reembolso foi processado com sucesso. O valor de R$${(refund.amount / 100).toFixed(2)} foi reembolsado para o seu método de pagamento original.\n\nSe você tiver alguma dúvida ou precisar de mais informações, não hesite em nos contatar.\n\nCom amor,\nGessyca Nails ♥️`,
             };
 
             // Enviar o e-mail
             await transporter.sendMail(mailOptions);
-
             console.log('E-mail de reembolso enviado para o usuário');
+
+            // Remover a compra do Firestore
+            const userRef = db.collection('users').doc(uid);
+            const userDoc = await userRef.get();
+            const purchases = userDoc.data().purchases;
+
+            const updatedPurchases = purchases.filter(purchase => purchase.sessionId !== session.id);
+
+            await userRef.update({
+                purchases: updatedPurchases
+            });
+
+            console.log(`Compra removida do Firestore para o usuário ${uid}`);
         } catch (error) {
             console.error('Erro ao processar evento de reembolso:', error);
             return {
@@ -197,6 +210,6 @@ exports.handler = async (event, context) => {
 
     return {
         statusCode: 200,
-        body: 'Evento processado com sucesso',
+        body: 'Evento de webhook processado com sucesso',
     };
 };
