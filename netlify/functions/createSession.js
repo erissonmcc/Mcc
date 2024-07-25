@@ -30,10 +30,11 @@ exports.handler = async (event, context) => {
 
   try {
     const requestBody = JSON.parse(event.body);
-    const { uid, email, displayName, token } = requestBody;
+    const { uid, email, displayName, token, productId } = requestBody;
 
-    console.log('Dados do usuário:', { uid, email, displayName });
+    console.log('Dados do usuário:', { uid, email, displayName, productId });
 
+    // Verificar token de autenticação
     const decodedToken = await auth.verifyIdToken(token);
     if (decodedToken.uid !== uid) {
       console.log('UID no token JWT não corresponde ao UID fornecido');
@@ -44,8 +45,20 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // Verificar se o usuário existe e obter dados do Firestore
     const userRef = db.collection('users').doc(uid);
-    const userDoc = await userRef.get();
+    const productRef = db.collection('products').doc(productId);
+    console.log('Id do produto', productId);
+    const [userDoc, productDoc, existingSessionSnapshot] = await Promise.all([
+      userRef.get(),
+      productRef.get(),
+      db.collection('checkout_sessions')
+        .where('uid', '==', uid)
+        .where('productId', '==', productId)
+        .where('expiresAt', '>', new Date())
+        .limit(1)
+        .get(),
+    ]);
 
     if (!userDoc.exists) {
       console.log('Usuário não encontrado');
@@ -57,7 +70,6 @@ exports.handler = async (event, context) => {
     }
 
     const userData = userDoc.data();
-
     if (userData.email !== email) {
       console.log('Email ou nome de usuário não correspondem');
       return {
@@ -67,24 +79,27 @@ exports.handler = async (event, context) => {
       };
     }
 
-    if (userData.purchases && userData.purchases.some(purchase => purchase.productName === 'Postiça realista iniciante e aperfeiçoamento')) {
-      console.log('Usuário já comprou o curso. Recusando a criação da sessão.');
+    if (!productDoc.exists) {
+      console.log('Produto não encontrado');
       return {
-        statusCode: 400,
+        statusCode: 404,
         headers,
-        body: JSON.stringify({ error: 'Usuário já comprou o curso' }),
+        body: JSON.stringify({ error: 'Produto não encontrado' }),
       };
     }
 
-    const existingSession = await db.collection('checkout_sessions')
-                                   .where('uid', '==', uid)
-                                   .where('productName', '==', 'Postiça realista iniciante e aperfeiçoamento')
-                                   .where('expiresAt', '>', new Date())
-                                   .limit(1)
-                                   .get();
+    const productData = productDoc.data();
+    if (!productData) {
+      console.log('Dados do produto inválidos');
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Dados do produto inválidos' }),
+      };
+    }
 
-    if (!existingSession.empty) {
-      const sessionData = existingSession.docs[0].data();
+    if (!existingSessionSnapshot.empty) {
+      const sessionData = existingSessionSnapshot.docs[0].data();
       console.log('Sessão existente encontrada:', sessionData.id);
       return {
         statusCode: 200,
@@ -93,32 +108,35 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // Criar sessão de checkout com base nos dados do produto
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card', 'boleto'],
+      payment_method_types: productData.paymentMethods || ['card'], // Use o método de pagamento do produto ou 'card' por padrão
       line_items: [{
         price_data: {
-          currency: 'brl',
+          currency: productData.currency || 'brl',
           product_data: {
-            name: 'Postiça realista iniciante e aperfeiçoamento',
+            name: productData.name,
           },
-          unit_amount: 3400,
+          unit_amount: productData.price,
         },
-        quantity: 1,
+        quantity: productData.quantity || 1, // Use a quantidade do produto ou 1 por padrão
       }],
       mode: 'payment',
-      success_url: 'http://localhost:2435/storage/emulated/0/gessica/public/index.html',
-      cancel_url: 'http://localhost:2435/storage/emulated/0/gessica/public/index.html',
+      success_url: productData.successUrl || 'http://localhost:2435/storage/emulated/0/gessica/public/index.html',
+      cancel_url: productData.cancelUrl || 'http://localhost:2435/storage/emulated/0/gessica/public/index.html',
       customer_email: email,
       billing_address_collection: 'required',
       metadata: {
         uid: uid,
         displayName: displayName,
+        productId: productId,
       },
     });
 
     await db.collection('checkout_sessions').doc(session.id).set({
       uid: uid,
-      productName: 'Postiça realista iniciante e aperfeiçoamento',
+      productId: productId,
+      productName: productData.name,
       id: session.id,
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 horas a partir de agora
     });

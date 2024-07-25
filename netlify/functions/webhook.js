@@ -8,6 +8,7 @@ exports.handler = async (event, context) => {
     let stripeEvent;
 
     try {
+        // Aqui, usamos o event.body em seu formato bruto para preservar a integridade do payload
         stripeEvent = stripe.webhooks.constructEvent(event.body, stripeSignature, process.env.STRIPE_WEBHOOK_SECRET);
     } catch (err) {
         console.error('Erro ao verificar assinatura do webhook:', err.message);
@@ -198,7 +199,7 @@ exports.handler = async (event, context) => {
                 purchases: updatedPurchases
             });
 
-            console.log(`Compra removida do Firestore para o usuário ${uid}`);
+            console.log(`Compra removida do Firestore para o usuÃ¡rio ${uid}`);
         } catch (error) {
             console.error('Erro ao processar evento de reembolso:', error);
             return {
@@ -206,6 +207,7 @@ exports.handler = async (event, context) => {
                 body: `Erro ao processar evento de reembolso: ${error.message}`,
             };
         }
+        
     }
 
     return {
