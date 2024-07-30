@@ -58,9 +58,24 @@ exports.handler = async function (event, context) {
       uid = decodedToken.uid;
       console.log("Token decodificado com sucesso. UID:", uid);
     } catch (err) {
+    if (err.code === 'auth/id-token-expired') {
+      // Token expirou, retorne um erro para o cliente
+     console.error("Token do usuario esta expirado");
+      return {
+        statusCode: 401,
+       headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          },
+        body: JSON.stringify({ error: 'Token expirado. Por favor, obtenha um novo token.' })
+      };
+    } else {
       console.error("Erro ao decodificar o token:", err);
       throw new Error('Token inválido.');
     }
+}
 
     // Verifica se o usuário está bloqueado
     const blockedUserDoc = await db.collection('gessyBot-blocked').doc(uid).get();
