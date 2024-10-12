@@ -33,22 +33,6 @@ exports.handler = async (event, context) => {
     const { uid, email, displayName, token, productId } = requestBody;
 
     console.log('Dados do usuário:', { uid, email, displayName, productId, token });
-    if (token === 'Sem token') {
-    console.log('Token definido');
-    // Verificar token de autenticação
-    const decodedToken = await auth.verifyIdToken(token);
-    if (decodedToken.uid !== uid) {
-      console.log('UID no token JWT não corresponde ao UID fornecido');
-      return {
-        statusCode: 403,
-        headers,
-        body: JSON.stringify({ error: 'UID não autorizado' }),
-      };
-    }
-
-    } else {
-    console.log('Token não definido');
-    }
 
     // Verificar se o usuário existe e obter dados do Firestore
     const userRef = db.collection('users').doc(uid);
