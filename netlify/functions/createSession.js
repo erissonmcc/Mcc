@@ -33,7 +33,7 @@ exports.handler = async (event, context) => {
     const { uid, email, displayName, token, productId } = requestBody;
 
     console.log('Dados do usuário:', { uid, email, displayName, productId });
-
+    if (!token) {
     // Verificar token de autenticação
     const decodedToken = await auth.verifyIdToken(token);
     if (decodedToken.uid !== uid) {
@@ -45,6 +45,7 @@ exports.handler = async (event, context) => {
       };
     }
 
+    }
     // Verificar se o usuário existe e obter dados do Firestore
     const userRef = db.collection('users').doc(uid);
     const productRef = db.collection('products').doc(productId);
