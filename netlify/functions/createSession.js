@@ -134,7 +134,7 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ id: session.id }),
+      body: JSON.stringify({ id: session.id, url: session.url }),
     };
   } catch (error) {
     console.error('Erro ao criar sessão de checkout:', error);
