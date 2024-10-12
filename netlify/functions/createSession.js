@@ -93,7 +93,7 @@ exports.handler = async (event, context) => {
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ id: sessionData.id }),
+        body: JSON.stringify({ id: sessionData.id, url: session.url }),
       };
     }
 
@@ -127,6 +127,7 @@ exports.handler = async (event, context) => {
       productId: productId,
       productName: productData.name,
       id: session.id,
+      url: session.url,
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 horas a partir de agora
     });
 
