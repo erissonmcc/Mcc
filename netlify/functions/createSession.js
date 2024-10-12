@@ -93,7 +93,7 @@ exports.handler = async (event, context) => {
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ id: sessionData.id, url: session.url }),
+        body: JSON.stringify({ id: sessionData.id, url: sessionData.url }),
       };
     }
 
