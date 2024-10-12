@@ -33,7 +33,7 @@ exports.handler = async (event, context) => {
     const { uid, email, displayName, token, productId } = requestBody;
 
     console.log('Dados do usuário:', { uid, email, displayName, productId, token });
-    if (token === undefined) {
+    if (token === 'Sem token') {
     console.log('Token definido');
     // Verificar token de autenticação
     const decodedToken = await auth.verifyIdToken(token);
