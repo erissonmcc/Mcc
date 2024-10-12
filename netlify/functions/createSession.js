@@ -32,8 +32,9 @@ exports.handler = async (event, context) => {
     const requestBody = JSON.parse(event.body);
     const { uid, email, displayName, token, productId } = requestBody;
 
-    console.log('Dados do usuário:', { uid, email, displayName, productId });
-    if (!token) {
+    console.log('Dados do usuário:', { uid, email, displayName, productId, token });
+    if (token === undefined) {
+    console.log('Token definido');
     // Verificar token de autenticação
     const decodedToken = await auth.verifyIdToken(token);
     if (decodedToken.uid !== uid) {
@@ -45,7 +46,10 @@ exports.handler = async (event, context) => {
       };
     }
 
+    } else {
+    console.log('Token não definido');
     }
+
     // Verificar se o usuário existe e obter dados do Firestore
     const userRef = db.collection('users').doc(uid);
     const productRef = db.collection('products').doc(productId);
