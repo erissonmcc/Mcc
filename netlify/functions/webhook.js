@@ -230,7 +230,7 @@ async function assignDiscordRole(discordUserId) {
         const response = await fetch(`https://discord.com/api/v10/guilds/${process.env.DISCORD_GUILD_ID}/members/${discordUserId}`, {
             method: 'PATCH',
             headers: {
-                'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`,
+                'Authorization': `Bot ${process.env.BOT_TOKEN}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
