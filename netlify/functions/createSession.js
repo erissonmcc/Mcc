@@ -119,6 +119,7 @@ exports.handler = async (event, context) => {
         uid: uid,
         displayName: displayName,
         productId: productId,
+        productName: productData.name,
         discordId: discordId,
       },
     });

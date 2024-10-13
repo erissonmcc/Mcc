@@ -43,14 +43,11 @@ exports.handler = async (event, context) => {
 
         if (uid) {
             const userRef = db.collection('users').doc(uid);
-            const productName = session.metadata.productId === 'VIP Discord Gessyca Nails'
-                ? 'VIP Discord Gessyca Nails'
-                : 'Postiça realista iniciante e aperfeiçoamento';
 
             try {
                 await userRef.update({
                     purchases: admin.firestore.FieldValue.arrayUnion({
-                        productName: productName,
+                        productName: session.metadata.productName,
                         purchaseDate: admin.firestore.Timestamp.now(),
                         sessionId: session.id,
                         amount: session.amount_total,
