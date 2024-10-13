@@ -224,15 +224,12 @@ exports.handler = async (event, context) => {
 // Função para atribuir o cargo no Discord
 async function assignDiscordRole(discordUserId) {
     try {
-        const response = await fetch(`https://discord.com/api/v10/guilds/${process.env.DISCORD_GUILD_ID}/members/${discordUserId}`, {
-            method: 'PATCH',
+        const response = await fetch(`https://discord.com/api/v10/guilds/${process.env.GUILD_ID}/members/${discordUserId}/roles/${process.env.ROLE_ID}`, {
+            method: 'PUT', // Use PUT para adicionar um cargo específico
             headers: {
                 'Authorization': `Bot ${process.env.BOT_TOKEN}`,
                 'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                roles: [1294348086113468536], // ID do cargo a ser atribuído
-            }),
+            }
         });
 
         if (!response.ok) {
