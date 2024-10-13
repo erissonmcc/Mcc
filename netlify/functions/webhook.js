@@ -1,7 +1,7 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { db, admin } = require('./firebaseAdmin');
 const nodemailer = require('nodemailer');
-const fetch = require('node-fetch');
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
 exports.handler = async (event, context) => {
     const stripeSignature = event.headers['stripe-signature'];
