@@ -62,7 +62,7 @@ exports.handler = async (event, context) => {
                 console.log('Produto:', session.metadate.productId);
                 // Verifica se o produto é o VIP e atribui o cargo no Discord
                 if (session.metadata.productId === 'qUemZpeFAYIoZMDV4Jpp') {
-                    const discordUserId = session.metadata.uid;
+                    const discordUserId = session.metadata.discordId;
                     await assignDiscordRole(discordUserId);
                 }
 

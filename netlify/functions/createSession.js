@@ -30,7 +30,7 @@ exports.handler = async (event, context) => {
 
   try {
     const requestBody = JSON.parse(event.body);
-    const { uid, email, displayName, token, productId } = requestBody;
+    const { uid, discordId, email, displayName, token, productId } = requestBody;
 
     console.log('Dados do usuário:', { uid, email, displayName, productId, token });
 
@@ -119,6 +119,7 @@ exports.handler = async (event, context) => {
         uid: uid,
         displayName: displayName,
         productId: productId,
+        discordId: discordId,
       },
     });
 
