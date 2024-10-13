@@ -24,7 +24,7 @@ exports.handler = async (event, context) => {
 
     if (stripeEvent.type === 'checkout.session.completed') {
         let uid = session.metadata.uid;
-        console.log('Email do usuário', userEmail);
+        console.log('Email do usuário:', userEmail);
         if (!uid) {
             const usersRef = db.collection('users');
             try {
@@ -43,11 +43,14 @@ exports.handler = async (event, context) => {
 
         if (uid) {
             const userRef = db.collection('users').doc(uid);
+            const productName = session.metadata.productId === 'VIP Discord Gessyca Nails'
+                ? 'VIP Discord Gessyca Nails'
+                : 'Postiça realista iniciante e aperfeiçoamento';
 
             try {
                 await userRef.update({
                     purchases: admin.firestore.FieldValue.arrayUnion({
-                        productName: 'Postiça realista iniciante e aperfeiçoamento',
+                        productName: productName,
                         purchaseDate: admin.firestore.Timestamp.now(),
                         sessionId: session.id,
                         amount: session.amount_total,
@@ -56,6 +59,12 @@ exports.handler = async (event, context) => {
                 });
 
                 console.log(`Compra registrada para o usuário ${uid}`);
+                console.log('Produto:', session.metadate.productId);
+                // Verifica se o produto é o VIP e atribui o cargo no Discord
+                if (session.metadata.productId === 'qUemZpeFAYIoZMDV4Jpp') {
+                    const discordUserId = session.metadata.uid;
+                    await assignDiscordRole(discordUserId);
+                }
 
                 const transporter = nodemailer.createTransport({
                     service: 'gmail',
@@ -68,8 +77,8 @@ exports.handler = async (event, context) => {
                 const mailOptions = {
                     from: process.env.EMAIL_USER,
                     to: userEmail,
-                    subject: 'Bem-vindo ao curso de Postiça Realista!',
-                    text: `Olá ${userName}!\n\nQue prazer ter você a bordo! 🎉 Parabéns pela decisão de investir no curso "Postiça Realista Iniciante e Aperfeiçoamento para Iniciantes". Estamos entusiasmados por ter você nesta jornada conosco.\n\nNossos cursos são cuidadosamente planejados para ajudá-lo a dominar as técnicas de postiça de forma prática e divertida. Sabemos que você está ansioso para começar e queremos garantir que você tenha a melhor experiência possível.\n\nNeste primeiro módulo você encontrará conteúdos essenciais e dicas valiosas para ajudá-lo a seguir em frente com confiança. Se você tiver alguma dúvida ou precisar de ajuda, não hesite em nos contatar. Estamos aqui para apoiá-lo.\n\nAproveite cada momento e lembre-se: todo desafio é uma oportunidade de aprender. Estamos ansiosos para ver seu progresso e sucesso!\n\nBem-vindo ao nosso time e vamos arrasar juntos!\n\nCom amor,\nGessyca Nails!`,
+                    subject: `Bem-vindo ao ${productName}!`,
+                    text: `Olá ${userName}!\n\nQue prazer ter você a bordo! 🎉 Parabéns pela decisão de investir no ${productName}. Estamos entusiasmados por ter você nesta jornada conosco.\n\nSe você tiver alguma dúvida ou precisar de ajuda, não hesite em nos contatar. Estamos aqui para apoiá-lo.\n\nAproveite cada momento e lembre-se: todo desafio é uma oportunidade de aprender. Estamos ansiosos para ver seu progresso e sucesso!\n\nCom amor,\nGessyca Nails!`,
                 };
 
                 await transporter.sendMail(mailOptions);
@@ -88,7 +97,7 @@ exports.handler = async (event, context) => {
                         token: adminUserToken,
                         notification: {
                             title: 'Nova Compra Realizada',
-                            body: `Uma nova compra foi realizada por ${userName}. Valor: R$${(session.amount_total / 100).toFixed(2)}. Produto: Postiça realista iniciante e aperfeiçoamento.`,
+                            body: `Uma nova compra foi realizada por ${userName}. Valor: R$${(session.amount_total / 100).toFixed(2)}. Produto: ${productName}.`,
                         },
                         android: {
                             notification: {
@@ -101,7 +110,7 @@ exports.handler = async (event, context) => {
                             },
                         },
                         data: {
-                            productName: 'Postiça realista iniciante e aperfeiçoamento',
+                            productName: productName,
                             purchaseDate: admin.firestore.Timestamp.now().toString(),
                             amount: session.amount_total.toString(),
                             currency: session.currency,
@@ -142,7 +151,7 @@ exports.handler = async (event, context) => {
             from: process.env.EMAIL_USER,
             to: userEmail,
             subject: 'Parece que você não concluiu sua matrícula',
-            text: `Olá, ${userName}!\n\nPercebi que você começou a se matricular em nosso site, mas algo te impediu de finalizar. Vamos resolver isso juntos?\n\nResponda com o plano desejado e a forma de pagamento (cartão de crédito ou boleto) que eu te ajudo a finalizar a matrícula.\n\nCom carinho,\nGessyca 💅`,
+            text: `Olá, ${userName}!\n\nPercebi que você começou a se matricular em nosso site, mas algo te impediu de finalizar. Vamos resolver isso juntos?\n\nResponda com o plano desejado e a forma de pagamento (cartão de crédito ou boleto) que eu te ajudo a finalizar a matrícula.\n\nCom carinho,\nGessyca 💖`,
         };
 
         try {
@@ -199,7 +208,7 @@ exports.handler = async (event, context) => {
                 purchases: updatedPurchases
             });
 
-            console.log(`Compra removida do Firestore para o usuÃ¡rio ${uid}`);
+            console.log(`Compra removida do Firestore para o usuário ${uid}`);
         } catch (error) {
             console.error('Erro ao processar evento de reembolso:', error);
             return {
@@ -207,7 +216,6 @@ exports.handler = async (event, context) => {
                 body: `Erro ao processar evento de reembolso: ${error.message}`,
             };
         }
-        
     }
 
     return {
@@ -215,3 +223,27 @@ exports.handler = async (event, context) => {
         body: 'Evento de webhook processado com sucesso',
     };
 };
+
+// Função para atribuir o cargo no Discord
+async function assignDiscordRole(discordUserId) {
+    try {
+        const response = await fetch(`https://discord.com/api/v10/guilds/${process.env.DISCORD_GUILD_ID}/members/${discordUserId}`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                roles: [1294348086113468536], // ID do cargo a ser atribuído
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Erro ao atribuir cargo: ${response.statusText}`);
+        }
+
+        console.log(`Cargo atribuído com sucesso ao usuário Discord ID: ${discordUserId}`);
+    } catch (error) {
+        console.error('Erro ao atribuir cargo no Discord:', error);
+    }
+}
