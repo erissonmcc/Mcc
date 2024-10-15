@@ -222,19 +222,23 @@ exports.handler = async (event, context) => {
     };
 };
 
-// Função para atribuir o cargo no Discord
+
 async function assignDiscordRole(discordUserId) {
     try {
-        const response = await fetch(`https://discord.com/api/v10/guilds/${process.env.GUILD_ID}/members/${discordUserId}/roles/${process.env.ROLE_ID}`, {
-            method: 'PUT', // Use PUT para adicionar um cargo específico
+        const response = await fetch(`https://discord.com/api/v10/guilds/${process.env.GUILD_ID}/members/${discordUserId}`, {
+            method: 'PATCH',
             headers: {
                 'Authorization': `Bot ${process.env.BOT_TOKEN}`,
                 'Content-Type': 'application/json',
-            }
+            },
+            body: JSON.stringify({
+                roles: ['1294348086113468536'], // Array de cargos a serem adicionados
+            }),
         });
 
         if (!response.ok) {
-            throw new Error(`Erro ao atribuir cargo: ${response.statusText}`);
+            const errorMsg = await response.text(); // Pegue a mensagem de erro detalhada
+            throw new Error(`Erro ao atribuir cargo: ${errorMsg}`);
         }
 
         console.log(`Cargo atribuído com sucesso ao usuário Discord ID: ${discordUserId}`);
