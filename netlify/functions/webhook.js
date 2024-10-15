@@ -21,6 +21,7 @@ exports.handler = async (event, context) => {
     const session = stripeEvent.data.object;
     const userName = session.customer_details.name;
     const userEmail = session.customer_email;
+    const productName = session.metadata.productName;
 
     if (stripeEvent.type === 'checkout.session.completed') {
         let uid = session.metadata.uid;
