@@ -225,7 +225,7 @@ exports.handler = async (event, context) => {
 
 async function assignDiscordRole(discordUserId) {
     try {
-        const response = await fetch(`https://discord.com/api/v10/guilds/${process.env.GUILD_ID}/members/${discordUserId}`, {
+        const response = await fetch(`https://discord.com/api/v10/guilds/${process.env.DISCORD_GUILD_ID}/members/${discordUserId}`, {
             method: 'PATCH',
             headers: {
                 'Authorization': `Bot ${process.env.BOT_TOKEN}`,
