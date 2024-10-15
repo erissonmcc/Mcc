@@ -240,9 +240,72 @@ async function assignDiscordRole(discordUserId) {
             const errorMsg = await response.text(); // Pegue a mensagem de erro detalhada
             throw new Error(`Erro ao atribuir cargo: ${errorMsg}`);
         }
-
+        sendEmbedMessage(discordUserId);
         console.log(`Cargo atribuído com sucesso ao usuário Discord ID: ${discordUserId}`);
     } catch (error) {
         console.error('Erro ao atribuir cargo no Discord:', error);
+    }
+}
+
+// Função para enviar mensagem com embed
+async function sendEmbedMessage(discordUserId) {
+    try {
+        // Primeiro, abrir o canal de DM com o usuário
+        const channelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bot ${process.env.BOT_TOKEN}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                recipient_id: discordUserId // O ID do usuário do Discord
+            })
+        });
+
+        const channelData = await channelResponse.json();
+        if (!channelResponse.ok) {
+            throw new Error(`Erro ao abrir canal de DM: ${channelData.message}`);
+        }
+
+        // Em seguida, enviar a mensagem embed no canal de DM
+        const messageResponse = await fetch(`https://discord.com/api/v10/channels/${channelData.id}/messages`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bot ${process.env.BOT_TOKEN}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                embeds: [
+                    {
+                        title: "Bem-vindo ao VIP Discord Gessyca Nails!",
+                        description: "Você agora tem acesso ao conteúdo exclusivo do servidor. Aproveite!",
+                        color: 0xFF69B4, // Cor rosa (hexadecimal para decimal)
+                        fields: [
+                            {
+                                name: "Instruções",
+                                value: "Verifique os novos canais desbloqueados e aproveite os benefícios!"
+                            },
+                            {
+                                name: "Suporte",
+                                value: "Se precisar de ajuda, envie uma mensagem para nossa equipe de suporte."
+                            }
+                        ],
+                        footer: {
+                            text: "Gessyca Nails VIP",
+                        },
+                        timestamp: new Date().toISOString(),
+                    }
+                ]
+            })
+        });
+
+        if (!messageResponse.ok) {
+            const errorData = await messageResponse.json();
+            throw new Error(`Erro ao enviar mensagem embed: ${errorData.message}`);
+        }
+
+        console.log(`Mensagem embed enviada com sucesso ao usuário Discord ID: ${discordUserId}`);
+    } catch (error) {
+        console.error('Erro ao enviar mensagem embed no Discord:', error);
     }
 }
