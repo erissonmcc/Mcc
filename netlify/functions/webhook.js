@@ -225,22 +225,44 @@ exports.handler = async (event, context) => {
 
 async function assignDiscordRole(discordUserId) {
     try {
-        const response = await fetch(`https://discord.com/api/v10/guilds/${process.env.DISCORD_GUILD_ID}/members/${discordUserId}`, {
+        // Primeiro, busque os detalhes do membro do servidor (incluindo os cargos atuais)
+        const getUserResponse = await fetch(`https://discord.com/api/v10/guilds/${process.env.DISCORD_GUILD_ID}/members/${discordUserId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bot ${process.env.BOT_TOKEN}`,
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!getUserResponse.ok) {
+            const errorMsg = await getUserResponse.text();
+            throw new Error(`Erro ao obter detalhes do usuário: ${errorMsg}`);
+        }
+
+        const userData = await getUserResponse.json();
+
+        // Adicione o novo cargo ao array de cargos do usuário, sem duplicar
+        const roleId = '1294348086113468536'; // ID do cargo a ser atribuído
+        const updatedRoles = new Set(userData.roles); // Converta os cargos atuais em um Set para evitar duplicatas
+        updatedRoles.add(roleId); // Adicione o novo cargo
+
+        // Atualize o usuário com a lista de cargos atualizada
+        const updateResponse = await fetch(`https://discord.com/api/v10/guilds/${process.env.DISCORD_GUILD_ID}/members/${discordUserId}`, {
             method: 'PATCH',
             headers: {
                 'Authorization': `Bot ${process.env.BOT_TOKEN}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                roles: ['1294348086113468536'], // Array de cargos a serem adicionados
+                roles: Array.from(updatedRoles), // Converta o Set de volta para um array
             }),
         });
 
-        if (!response.ok) {
-            const errorMsg = await response.text(); // Pegue a mensagem de erro detalhada
+        if (!updateResponse.ok) {
+            const errorMsg = await updateResponse.text();
             throw new Error(`Erro ao atribuir cargo: ${errorMsg}`);
         }
-        sendEmbedMessage(discordUserId);
+
         console.log(`Cargo atribuído com sucesso ao usuário Discord ID: ${discordUserId}`);
     } catch (error) {
         console.error('Erro ao atribuir cargo no Discord:', error);
