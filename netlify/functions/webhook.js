@@ -54,7 +54,7 @@ const fetch = (...args) => import('node-fetch').then(({
                 const userRef = db.collection('users').doc(uid);
 
                 try {
-                    await userRef.update({
+                    await userRef.set({
                         purchases: admin.firestore.FieldValue.arrayUnion({
                             productName: session.metadata.productName,
                             purchaseDate: admin.firestore.Timestamp.now(),
@@ -62,12 +62,14 @@ const fetch = (...args) => import('node-fetch').then(({
                             amount: session.amount_total,
                             currency: session.currency,
                         }),
+                    }, {
+                        merge: true
                     });
-                    
+
                     await admin.auth().setCustomUserClaims(uid, {
                         course_purchased: true,
                     });
-                    
+
                     console.log("Claim de role adicionado com sucesso!");
 
                     console.log(`Compra registrada para o usuário ${uid}`);
@@ -227,11 +229,11 @@ const fetch = (...args) => import('node-fetch').then(({
                 const userRef = db.collection('users').doc(uid);
                 const userDoc = await userRef.get();
                 const purchases = userDoc.data().purchases;
-                
+
                 await admin.auth().setCustomUserClaims(uid, {
-                        course_purchased: false,
-                    });
-                    
+                    course_purchased: false,
+                });
+
                 const updatedPurchases = purchases.filter(purchase => purchase.sessionId !== session.id);
 
                 await userRef.update({
