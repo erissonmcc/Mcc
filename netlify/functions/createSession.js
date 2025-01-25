@@ -115,67 +115,33 @@ exports.handler = async (event, context) => {
         }
 
 
-let session;
+        let session;
 
-if (productData.isRecurring) {
-  // Sessão para pagamentos recorrentes
-  session = await stripe.checkout.sessions.create({
-    payment_method_types: ['card'],
-    line_items: [
-      {
-        price_data: {
-          currency: productData.currency || 'brl',
-          product_data: {
-            name: productData.name,
-          },
-          unit_amount: productData.priceParcelado,
-          recurring: {
-            interval: 'month',
-            interval_count: 1,
-          },
-        },
-        quantity: 1,
-      },
-    ],
-    mode: 'subscription', // Modo para assinaturas
-    success_url: productData.successUrl || 'http://localhost:2435/success',
-    cancel_url: productData.cancelUrl || 'http://localhost:2435/cancel',
-    billing_address_collection: 'required',
-    metadata: {
-      uid: userId,
-      productId: productData.productId,
-      productName: productData.name,
-    },
-  });
-} else {
-  // Sessão para pagamento único
-  session = await stripe.checkout.sessions.create({
-    payment_method_types: ['card'],
-    line_items: [
-      {
-        price_data: {
-          currency: productData.currency || 'brl',
-          product_data: {
-            name: productData.name,
-          },
-          unit_amount: productData.priceAvista,
-        },
-        quantity: 1,
-      },
-    ],
-    mode: 'payment', // Modo para pagamento único
-    success_url: productData.successUrl || 'http://localhost:2435/success',
-    cancel_url: productData.cancelUrl || 'http://localhost:2435/cancel',
-    billing_address_collection: 'required',
-    metadata: {
-      uid: userId,
-      productId: productData.productId,
-      productName: productData.name,
-    },
-  });
-}
+        // Sessão para pagamento único
+        session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [{
+                price_data: {
+                    currency: productData.currency || 'brl',
+                    product_data: {
+                        name: productData.name,
+                    },
+                    unit_amount: productData.priceAvista,
+                },
+                quantity: 1,
+            },
+            ],
+            mode: 'payment', // Modo para pagamento único
+            success_url: productData.successUrl || 'http://localhost:2435/success',
+            cancel_url: productData.cancelUrl || 'http://localhost:2435/cancel',
+            billing_address_collection: 'required',
+            metadata: {
+                token: token,
+                productId: productData.productId,
+            },
+        });
 
-console.log('Sessão criada com sucesso:', session);
+        console.log('Sessão criada com sucesso:', session);
 
         await db.collection('checkout_sessions').doc(session.id).set({
             uid: userId,
