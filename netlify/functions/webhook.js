@@ -23,20 +23,16 @@ const fetch = (...args) => import('node-fetch').then(({
         }
 
         const session = stripeEvent.data.object;
-        const userEmail = session.customer_email;
+        const name = session.customer_details.name;
+        const userEmail = session.customer_details.email;
         const productName = session.metadata.productName;
         const token = session.metadata.token;
 
         if (stripeEvent.type === 'checkout.session.completed') {
             let uid = session.metadata.uid;
-            const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent);
-
-            // O nome do titular do cartão (se disponível) está em 'charges.data[0].billing_details.name'
-            const cardHolderName = paymentIntent.charges.data[0].billing_details.name;
-
             console.log(`Email do cliente: ${userEmail}`);
             console.log(`Nome do produto: ${productName}`);
-            console.log(`Nome do titular do cartão: ${cardHolderName}`);
+            console.log(`Nome do titular do cartão: ${name}`);
 
             if (!uid) {
                 const usersRef = db.collection('users');
@@ -99,7 +95,7 @@ const fetch = (...args) => import('node-fetch').then(({
                         <html>
                         <body>
                         <h1 style="color: #4CAF50; text-align: center;">Compra Realizada com Sucesso!</h1>
-                        <p style="font-size: 16px; font-family: Arial, sans-serif;">Olá, <strong>${userName}</strong>,</p>
+                        <p style="font-size: 16px; font-family: Arial, sans-serif;">Olá, <strong>${name}</strong>,</p>
                         <p style="font-size: 16px; font-family: Arial, sans-serif;">Agradecemos pela sua compra! Seu pedido foi processado com sucesso. Agora falta pouco para concluímos, clique no botão abaixo para criar uma conta na plataforma e você ter acesso a todos os conteúdos do curso!</p>
                         <a href="http://localhost:8080/?register=true&token=${token}" style="text-decoration: none;">
                         <button style="background-color: #4CAF50; color: white; font-size: 16px; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-family: Arial, sans-serif;">
@@ -127,7 +123,7 @@ const fetch = (...args) => import('node-fetch').then(({
                             token: adminUserToken,
                             notification: {
                                 title: 'Nova Compra Realizada',
-                                body: `Uma nova compra foi realizada por ${userName}. Valor: R$${(session.amount_total / 100).toFixed(2)}. Produto: ${productName}.`,
+                                body: `Uma nova compra foi realizada por ${name}. Valor: R$${(session.amount_total / 100).toFixed(2)}. Produto: ${productName}.`,
                             },
                             android: {
                                 notification: {
@@ -167,7 +163,7 @@ const fetch = (...args) => import('node-fetch').then(({
                 };
             }
         } else if (stripeEvent.type === 'checkout.session.expired') {
-            console.log(`Sessão expirada para o usuário ${userName} (${userEmail})`);
+            console.log(`Sessão expirada para o usuário ${name} (${userEmail})`);
 
             const transporter = nodemailer.createTransport({
                 service: 'gmail',
@@ -181,7 +177,7 @@ const fetch = (...args) => import('node-fetch').then(({
                 from: process.env.EMAIL_USER,
                 to: userEmail,
                 subject: 'Parece que você não concluiu sua matrícula',
-                text: `Olá, ${userName}!\n\nPercebi que você começou a se matricular em nosso site, mas algo te impediu de finalizar. Vamos resolver isso juntos?\n\nResponda com o plano desejado e a forma de pagamento (cartão de crédito ou boleto) que eu te ajudo a finalizar a matrícula.\n\nCom carinho,\nGessyca 💖`,
+                text: `Olá!\n\nPercebi que você começou a se matricular em nosso site, mas algo te impediu de finalizar. Vamos resolver isso juntos?\n\nResponda com o plano desejado e a forma de pagamento (cartão de crédito ou boleto) que eu te ajudo a finalizar a matrícula.\n\nCom carinho,\nGessyca 💖`,
             };
 
             try {
