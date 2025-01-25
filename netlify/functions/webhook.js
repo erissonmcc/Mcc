@@ -102,11 +102,11 @@ const fetch = (...args) => import('node-fetch').then(({
                         html: `
                         <html>
                         <body>
-                        <h1 style="color: #4CAF50; text-align: center;">Compra Realizada com Sucesso!</h1>
+                        <h1 style="color: #fff; text-align: center;">Compra Realizada com Sucesso!</h1>
                         <p style="font-size: 16px; font-family: Arial, sans-serif;">Olá, <strong>${name}</strong>,</p>
-                        <p style="font-size: 16px; font-family: Arial, sans-serif;">Agradecemos pela sua compra! Seu pedido foi processado com sucesso. Agora falta pouco para concluímos, clique no botão abaixo para criar uma conta na plataforma e você ter acesso a todos os conteúdos do curso!</p>
+                        <p style="font-size: 16px; font-family: Arial, sans-serif;">Agradecemos pela sua compra! Seu pedido foi processado com sucesso. Agora falta pouco para concluímos, clique no botão abaixo para criar uma conta na plataforma para você ter acesso a todos os conteúdos do curso!</p>
                         <a href="http://localhost:8080/?register=true&token=${token}" style="text-decoration: none;">
-                        <button style="background-color: #4CAF50; color: white; font-size: 16px; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-family: Arial, sans-serif;">
+                        <button style="background-color: #b780ff; color: white; font-size: 16px; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-family: Arial, sans-serif;">
                         Criar uma conta!
                         </button>
                         </a>
