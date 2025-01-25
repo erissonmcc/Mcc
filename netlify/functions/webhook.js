@@ -26,12 +26,14 @@ const fetch = (...args) => import('node-fetch').then(({
         const name = session.customer_details.name;
         const userEmail = session.customer_details.email;
         const productName = session.metadata.productName;
-        const token = session.metadata.token;
-        
+        const token1 = session.metadata.token_part1;
+        const token2 = session.metadata.token_part2;
+        const token3 = session.metadata.token_part3;
+        const token = token1 + token2 + token3
         console.log('Token encontrado, verificando ID do usuário');
         const decodedToken = await admin.auth().verifyIdToken(token);
         const uid = decodedToken.uid;
-        console.log('ID do usuário:', userId);
+        console.log('ID do usuário:', uid);
         
         if (stripeEvent.type === 'checkout.session.completed') {
             console.log(`Email do cliente: ${userEmail}`);

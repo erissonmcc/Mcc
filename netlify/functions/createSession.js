@@ -116,6 +116,13 @@ exports.handler = async (event, context) => {
 
 
         let session;
+        const tokenParts = [
+            token.substring(0, 500),
+            // Primeira parte (até 500 caracteres)
+            token.substring(500, 1000),
+            // Segunda parte (próximos 500 caracteres)
+            token.substring(1000, 1500) // Terceira parte (últimos 500 caracteres)
+        ];
 
         // Sessão para pagamento único
         session = await stripe.checkout.sessions.create({
@@ -136,7 +143,9 @@ exports.handler = async (event, context) => {
             cancel_url: productData.cancelUrl || 'http://localhost:2435/cancel',
             billing_address_collection: 'required',
             metadata: {
-                token: token,
+                token_part1: tokenParts[0], // Primeira parte do token
+                token_part2: tokenParts[1], // Segunda parte do token
+                token_part3: tokenParts[2], // Terceira parte do token
                 productId: productData.productId,
             },
         });
