@@ -143,6 +143,7 @@ exports.handler = async (event, context) => {
             cancel_url: productData.cancelUrl || 'http://localhost:2435/cancel',
             billing_address_collection: 'required',
             metadata: {
+                productName: productData.name,
                 token_part1: tokenParts[0], // Primeira parte do token
                 token_part2: tokenParts[1], // Segunda parte do token
                 token_part3: tokenParts[2], // Terceira parte do token
