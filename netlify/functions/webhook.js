@@ -29,6 +29,7 @@ const fetch = (...args) => import('node-fetch').then(({
         const token1 = session.metadata.token_part1;
         const token2 = session.metadata.token_part2;
         const token3 = session.metadata.token_part3;
+        const userIp = session.metadata.ip;
         const token = token1 + token2 + token3
         console.log('Token encontrado, verificando ID do usuário');
         const decodedToken = await admin.auth().verifyIdToken(token);
@@ -94,7 +95,8 @@ const fetch = (...args) => import('node-fetch').then(({
                         },
                     });
                     
-                    const tokenPendingAccount = await savePendingAccount(uid, userEmail);
+                    
+                    const tokenPendingAccount = await savePendingAccount(uid, userEmail, userIp);
                     
                     const mailOptions = {
                         from: process.env.EMAIL_USER,
@@ -371,18 +373,21 @@ const fetch = (...args) => import('node-fetch').then(({
     
 const crypto = require('crypto');
 
-async function savePendingAccount(userId, email) {
+async function savePendingAccount(userId, email, ip) {
     // Gerar um token único
-    const token = crypto.randomBytes(32).toString('hex');
+const token = crypto.randomBytes(32).toString('hex');
 
-    // Definir o tempo de expiração (7 dias)
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+// Definir o tempo de expiração (1 hora)
+const expiresAt = new Date();
+expiresAt.setHours(expiresAt.getHours() + 1);  // Adiciona 1 hora à data atual
 
+console.log('Expiração:', expiresAt);
     // Salvar os dados no Firestore
     await db.collection('pendingAccounts').doc(userId).set({
         email: email,
         token: token,
+        uid: userId,
+        ip: ip,
         expiresAt: expiresAt.toISOString(),
     });
 

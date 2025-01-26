@@ -118,12 +118,12 @@ exports.handler = async (event, context) => {
         let session;
         const tokenParts = [
             token.substring(0, 500),
-            // Primeira parte (até 500 caracteres)
             token.substring(500, 1000),
-            // Segunda parte (próximos 500 caracteres)
             token.substring(1000, 1500) // Terceira parte (últimos 500 caracteres)
         ];
-
+        
+        const userIp = event.headers['x-forwarded-for'] || (event.requestContext && event.requestContext.identity ? event.requestContext.identity.sourceIp : null);
+    
         // Sessão para pagamento único
         session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
@@ -143,6 +143,7 @@ exports.handler = async (event, context) => {
             cancel_url: productData.cancelUrl || 'http://localhost:2435/cancel',
             billing_address_collection: 'required',
             metadata: {
+                ip: userIp,
                 productName: productData.name,
                 token_part1: tokenParts[0], // Primeira parte do token
                 token_part2: tokenParts[1], // Segunda parte do token

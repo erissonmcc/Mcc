@@ -32,9 +32,9 @@ exports.handler = async (event, context) => {
             }),
         };
     }
-    
+
     const token = event.headers.authorization?.split('Bearer ')[1];
-        
+
     const snapshot = await db.collection('pendingAccounts').where('token', '==', token).get();
 
     if (snapshot.empty) {
@@ -50,7 +50,17 @@ exports.handler = async (event, context) => {
 
     const doc = snapshot.docs[0];
     const data = doc.data();
-
+    const userIp = event.headers['x-forwarded-for'] || (event.requestContext && event.requestContext.identity ? event.requestContext.identity.sourceIp : null);
+    console.log('Ip do usuário:', userIp);
+    if (data.ip !== userIp) {
+        return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({
+                code: 'auth/unauthorized-ip'
+            }),
+        };
+    }
     // Verificar se o token ainda é válido
     const now = new Date();
     if (new Date(data.expiresAt) < now) {
@@ -58,9 +68,11 @@ exports.handler = async (event, context) => {
     }
 
     return {
-        uid: doc.id,
-        email: data.email,
-        expired: false,
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+            code: 'auth/authorized-access'
+        }),
     };
 }
 
@@ -80,7 +92,7 @@ async function renewToken(email) {
 
     // Atualizar o token e o prazo de validade
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // Renovar por mais 7 dias
+    expiresAt.setHours(expiresAt.getHours() + 1); // Renovar por mais 1 dia
 
     await db.collection('pendingAccounts').doc(doc.id).update({
         token: newToken,

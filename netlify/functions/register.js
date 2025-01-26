@@ -55,15 +55,15 @@ exports.handler = async (event, context) => {
         try {
             const existingUser = await admin.auth().getUserByEmail(email);
             if (existingUser) {
-            console.error('O email já está associado a outra conta:', existingUser.uid);
-            return {
-                statusCode: 400,
-                headers,
-                body: JSON.stringify({
-                    error: 'O email já está registrado em outra conta!',
-                    code: 'auth/email-in-use'
-                }),
-            };
+                console.error('O email já está associado a outra conta:', existingUser.uid);
+                return {
+                    statusCode: 400,
+                    headers,
+                    body: JSON.stringify({
+                        error: 'O email já está registrado em outra conta!',
+                        code: 'auth/email-in-use'
+                    }),
+                };
             }
         } catch (error) {
             if (error.code !== 'auth/user-not-found') {
@@ -72,19 +72,27 @@ exports.handler = async (event, context) => {
                 console.error('Erro ao verificar conta:', error);
             }
         }
-        
+
         let userId;
-        if (isEmail === 'true') {
-            const userData = validateTokenAndGetUserData(token);
-            if (userId.expired) {
+        if (isEmail === true) {
+            const userData = validateTokenAndGetUserData(token, event);
+            if (userData.expired) {
                 return {
-                statusCode: 400,
-                headers,
-                body: JSON.stringify({
-                    error: 'Token Expirado!',
-                    code: 'auth/token-expired'
-                }),
-            };
+                    statusCode: 400,
+                    headers,
+                    body: JSON.stringify({
+                        error: 'Token Expirado!',
+                        code: 'auth/token-expired'
+                    }),
+                };
+            } else if (userData.code === 'auth/unauthorized-ip') {
+                return {
+                    statusCode: 401,
+                    headers,
+                    body: JSON.stringify({
+                        code: 'auth/unauthorized-ip'
+                    }),
+                };
             } else {
                 userId = userData.uid;
             }
@@ -92,7 +100,7 @@ exports.handler = async (event, context) => {
         } else {
             console.log('Token encontrado, verificando ID do usuário');
             const decodedToken = await admin.auth().verifyIdToken(token);
-            const userId = decodedToken.uid;
+            userId = decodedToken.uid;
             console.log('ID do usuário:', userId);
         }
 
@@ -123,7 +131,7 @@ exports.handler = async (event, context) => {
     }
 };
 
-async function validateTokenAndGetUserData(token) {
+async function validateTokenAndGetUserData(token, event) {
     const snapshot = await db.collection('pendingAccounts').where('token', '==', token).get();
 
     if (snapshot.empty) {
@@ -141,10 +149,17 @@ async function validateTokenAndGetUserData(token) {
         }
     }
 
+    const userIp = event.headers['x-forwarded-for'] || (event.requestContext && event.requestContext.identity ? event.requestContext.identity.sourceIp: null);
+    console.log('Ip do usuário:', userIp);
+    if (data.ip !== userIp) {
+        return {
+            code: 'auth/unauthorized-ip'
+        };
+    }
+
     return {
-        uid: doc.id,
+        uid: doc.uid,
         email: data.email,
         expired: false,
     };
 }
-
