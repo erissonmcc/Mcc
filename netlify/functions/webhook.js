@@ -35,7 +35,7 @@ const fetch = (...args) => import('node-fetch').then(({
         const decodedToken = await admin.auth().verifyIdToken(token);
         const uid = decodedToken.uid;
         console.log('ID do usuário:', uid);
-        
+
         if (stripeEvent.type === 'checkout.session.completed') {
             console.log(`Email do cliente: ${userEmail}`);
             console.log(`Nome do produto: ${productName}`);
@@ -88,16 +88,17 @@ const fetch = (...args) => import('node-fetch').then(({
                     }
 
                     const transporter = nodemailer.createTransport({
-                        service: 'gmail',
+                        host: "smtp.gmail.com",
+                        port: 465,
+                        secure: true,
                         auth: {
                             user: process.env.EMAIL_USER,
                             pass: process.env.EMAIL_PASS,
                         },
                     });
-                    
-                    
+
                     const tokenPendingAccount = await savePendingAccount(uid, userEmail, userIp);
-                    
+
                     const mailOptions = {
                         from: process.env.EMAIL_USER,
                         to: userEmail,
@@ -369,28 +370,28 @@ const fetch = (...args) => import('node-fetch').then(({
             console.error('Erro ao enviar mensagem embed no Discord:', error);
         }
     }
-    
-    
-const crypto = require('crypto');
 
-async function savePendingAccount(userId, email, ip) {
-    // Gerar um token único
-const token = crypto.randomBytes(64).toString('hex');
 
-// Definir o tempo de expiração (1 hora)
-const expiresAt = new Date();
-expiresAt.setHours(expiresAt.getHours() + 1);  // Adiciona 1 hora à data atual
+    const crypto = require('crypto');
 
-console.log('Expiração:', expiresAt);
-    // Salvar os dados no Firestore
-    await db.collection('pendingAccounts').doc(userId).set({
-        email: email,
-        token: token,
-        uid: userId,
-        ip: ip,
-        expiresAt: expiresAt.toISOString(),
-    });
+    async function savePendingAccount(userId, email, ip) {
+        // Gerar um token único
+        const token = crypto.randomBytes(64).toString('hex');
 
-    console.log('Conta pendente salva com sucesso!');
-    return token;
-}
+        // Definir o tempo de expiração (1 hora)
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + 1); // Adiciona 1 hora à data atual
+
+        console.log('Expiração:', expiresAt);
+        // Salvar os dados no Firestore
+        await db.collection('pendingAccounts').doc(userId).set({
+            email: email,
+            token: token,
+            uid: userId,
+            ip: ip,
+            expiresAt: expiresAt.toISOString(),
+        });
+
+        console.log('Conta pendente salva com sucesso!');
+        return token;
+    }

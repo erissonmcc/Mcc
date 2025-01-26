@@ -50,7 +50,7 @@ exports.handler = async (event, context) => {
 
     const doc = snapshot.docs[0];
     const data = doc.data();
-    const userIp = event.headers['x-forwarded-for'] || (event.requestContext && event.requestContext.identity ? event.requestContext.identity.sourceIp : null);
+    const userIp = event.headers['x-forwarded-for'] || (event.requestContext && event.requestContext.identity ? event.requestContext.identity.sourceIp: null);
     console.log('Ip do usuário:', userIp);
     if (data.ip !== userIp) {
         return {
@@ -64,7 +64,16 @@ exports.handler = async (event, context) => {
     // Verificar se o token ainda é válido
     const now = new Date();
     if (new Date(data.expiresAt) < now) {
-        renewToken(data.email);
+        const data = await renewToken(data.email);
+        if (data.code === 'auth/new-link') {
+            return {
+                statusCode: 401,
+                headers,
+                body: JSON.stringify({
+                    code: 'auth/new-link'
+                }),
+            };
+        }
     }
 
     return {
@@ -101,12 +110,15 @@ async function renewToken(email) {
 
     console.log('Token renovado com sucesso!');
     const transporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
         auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASS,
         },
     });
+
 
     // Enviar o novo link por e-mail
     const mailOptions = {
@@ -131,5 +143,7 @@ async function renewToken(email) {
     };
     await transporter.sendMail(mailOptions);
 
-    return 'Novo link enviado para o e-mail.';
+    return {
+        code: 'auth/new-link'
+    };
 }
