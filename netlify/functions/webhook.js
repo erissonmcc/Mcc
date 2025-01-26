@@ -94,7 +94,7 @@ const fetch = (...args) => import('node-fetch').then(({
                         },
                     });
                     
-                    const tokenPendingAccount = savePendingAccount(uid, userEmail);
+                    const tokenPendingAccount = await savePendingAccount(uid, userEmail);
                     
                     const mailOptions = {
                         from: process.env.EMAIL_USER,
