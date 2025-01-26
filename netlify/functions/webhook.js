@@ -93,7 +93,9 @@ const fetch = (...args) => import('node-fetch').then(({
                             pass: process.env.EMAIL_PASS,
                         },
                     });
-
+                    
+                    const tokenPendingAccount = savePendingAccount(uid, userEmail);
+                    
                     const mailOptions = {
                         from: process.env.EMAIL_USER,
                         to: userEmail,
@@ -105,7 +107,7 @@ const fetch = (...args) => import('node-fetch').then(({
                         <h1 style="color: #fff; text-align: center;">Compra Realizada com Sucesso!</h1>
                         <p style="font-size: 16px; font-family: Arial, sans-serif;">Olá, <strong>${name}</strong>,</p>
                         <p style="font-size: 16px; font-family: Arial, sans-serif;">Agradecemos pela sua compra! Seu pedido foi processado com sucesso. Agora falta pouco para concluímos, clique no botão abaixo para criar uma conta na plataforma para você ter acesso a todos os conteúdos do curso!</p>
-                        <a href="http://localhost:8080/?register=true&token=${token}" style="text-decoration: none;">
+                        <a href="http://localhost:8080/?register=true&token=${tokenPendingAccount}" style="text-decoration: none;">
                         <button style="background-color: #b780ff; color: white; font-size: 16px; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-family: Arial, sans-serif;">
                         Criar uma conta!
                         </button>
@@ -114,9 +116,7 @@ const fetch = (...args) => import('node-fetch').then(({
                         </html>
                         `,
                     };
-
                     await transporter.sendMail(mailOptions);
-                    console.log('E-mail de boas-vindas enviado para o aluno');
 
                     const adminUsersRef = db.collection('users').where('role', '==', 'admin');
                     const adminUsersSnapshot = await adminUsersRef.get();
@@ -367,3 +367,25 @@ const fetch = (...args) => import('node-fetch').then(({
             console.error('Erro ao enviar mensagem embed no Discord:', error);
         }
     }
+    
+    
+const crypto = require('crypto');
+
+async function savePendingAccount(userId, email) {
+    // Gerar um token único
+    const token = crypto.randomBytes(32).toString('hex');
+
+    // Definir o tempo de expiração (7 dias)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    // Salvar os dados no Firestore
+    await db.collection('pendingAccounts').doc(userId).set({
+        email: email,
+        token: token,
+        expiresAt: expiresAt.toISOString(),
+    });
+
+    console.log('Conta pendente salva com sucesso!');
+    return token;
+}

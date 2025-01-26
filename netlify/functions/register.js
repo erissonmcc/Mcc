@@ -32,43 +32,119 @@ exports.handler = async (event, context) => {
             }),
         };
     }
-    try {
 
+    try {
         const token = event.headers.authorization?.split('Bearer ')[1];
         if (!token) {
             console.error('Token de autenticação não encontrado');
             return {
-                statusCode: 405,
+                statusCode: 401,
                 headers,
                 body: JSON.stringify({
                     error: 'Token de autenticação não encontrado!'
                 }),
             };
         }
-
-        console.log('Token encontrado, verificando ID do usuário');
-        const decodedToken = await admin.auth().verifyIdToken(token);
-        const userId = decodedToken.uid;
-        console.log('ID do usuário:', userId);
         const {
             email,
-            password
+            password,
+            isEmail
         } = JSON.parse(event.body);
+        // Verificar se o email já está registrado em outra conta
+        console.log('Verificando se o email já está registrado:', email);
+        try {
+            const existingUser = await admin.auth().getUserByEmail(email);
+            if (existingUser) {
+            console.error('O email já está associado a outra conta:', existingUser.uid);
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({
+                    error: 'O email já está registrado em outra conta!',
+                    code: 'auth/email-in-use'
+                }),
+            };
+            }
+        } catch (error) {
+            if (error.code !== 'auth/user-not-found') {
+                console.error('Usuário não encontrado!:', error);
+            } else {
+                console.error('Erro ao verificar conta:', error);
+            }
+        }
+        
+        let userId;
+        if (isEmail === 'true') {
+            const userData = validateTokenAndGetUserData(token);
+            if (userId.expired) {
+                return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({
+                    error: 'Token Expirado!',
+                    code: 'auth/token-expired'
+                }),
+            };
+            } else {
+                userId = userData.uid;
+            }
+
+        } else {
+            console.log('Token encontrado, verificando ID do usuário');
+            const decodedToken = await admin.auth().verifyIdToken(token);
+            const userId = decodedToken.uid;
+            console.log('ID do usuário:', userId);
+        }
+
         // Atualiza o usuário anônimo com o e-mail e senha
+        console.log('Atualizando o usuário anônimo:', userId);
         const userRecord = await admin.auth().updateUser(userId, {
             email: email,
             password: password,
         });
 
+        console.log("Conta migrada com sucesso:", userRecord.toJSON());
         return {
             statusCode: 200,
             headers,
             body: JSON.stringify({
-                response: 'Usuário autenticado!'
+                response: 'Usuário autenticado e conta migrada com sucesso!'
             }),
         };
-        console.log("Conta migrada com sucesso:", userRecord.toJSON());
     } catch (e) {
-        console.log('Error ao registrar usuário', e);
+        console.error('Erro ao registrar usuário:', e);
+        return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({
+                error: 'Erro interno ao processar a solicitação.'
+            }),
+        };
     }
 };
+
+async function validateTokenAndGetUserData(token) {
+    const snapshot = await db.collection('pendingAccounts').where('token', '==', token).get();
+
+    if (snapshot.empty) {
+        throw new Error('Token inválido ou expirado.');
+    }
+
+    const doc = snapshot.docs[0];
+    const data = doc.data();
+
+    // Verificar se o token ainda é válido
+    const now = new Date();
+    if (new Date(data.expiresAt) < now) {
+        return {
+            expired: true,
+        }
+    }
+
+    return {
+        uid: doc.id,
+        email: data.email,
+        expired: false,
+    };
+}
+
