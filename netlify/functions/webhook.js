@@ -375,7 +375,7 @@ const crypto = require('crypto');
 
 async function savePendingAccount(userId, email, ip) {
     // Gerar um token único
-const token = crypto.randomBytes(32).toString('hex');
+const token = crypto.randomBytes(64).toString('hex');
 
 // Definir o tempo de expiração (1 hora)
 const expiresAt = new Date();

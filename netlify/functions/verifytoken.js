@@ -88,7 +88,7 @@ async function renewToken(email) {
     const data = doc.data();
 
     // Gerar um novo token
-    const newToken = crypto.randomBytes(32).toString('hex');
+    const newToken = crypto.randomBytes(64).toString('hex');
 
     // Atualizar o token e o prazo de validade
     const expiresAt = new Date();
