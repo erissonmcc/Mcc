@@ -46,7 +46,6 @@ export default async function handler(req, res) {
     const session = stripeEvent.data.object;
     const userIp = session.metadata.ip;
     console.log('Token encontrado, verificando ID do usuário');
-    const decodedToken = await admin.auth().verifyIdToken(token);
     const uid = session.metadata.uid;
     const productName = session.metadata.productName;
     
