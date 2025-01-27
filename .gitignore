@@ -13,3 +13,4 @@ netlify/functions/config/serviceAccountKey.json
 
 # Local Netlify folder
 .netlify
+.vercel
