@@ -22,7 +22,7 @@
     "pdf-lib": "^1.17.1",
     "rate-limit": "^0.1.1",
     "serverless-http": "^2.7.0",
-    "stripe": "^16.7.0"
+    "stripe": "^17.5.0"
   },
   "type": "module"
 }
