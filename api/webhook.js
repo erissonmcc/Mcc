@@ -347,8 +347,7 @@ async function sendEmbedMessage(discordUserId) {
     }
 }
 
-
-const crypto = require('crypto');
+import crypto from 'crypto';
 
 async function savePendingAccount(userId, email, ip, name) {
     // Gerar um token único
