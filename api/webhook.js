@@ -32,17 +32,17 @@ export default async function handler(req, res) {
     }
 
     const session = stripeEvent.data.object;
-    const name = session.customer_details.name;
-    const userEmail = session.customer_details.email;
-    const productName = session.metadata.productName;
     const userIp = session.metadata.ip;
     console.log('Token encontrado, verificando ID do usuário');
     const decodedToken = await admin.auth().verifyIdToken(token);
     const uid = session.metadata.uid;
+    const productName = session.metadata.productName;
     
     console.log('ID do usuário:', uid);
 
     if (stripeEvent.type === 'checkout.session.completed') {
+        const name = session.customer_details.name;
+        const userEmail = session.customer_details.email;
         console.log(`Email do cliente: ${userEmail}`);
         console.log(`Nome do produto: ${productName}`);
         console.log(`Nome do titular do cartão: ${name}`);
@@ -115,10 +115,10 @@ export default async function handler(req, res) {
                     <body>
                     <h1 style="color: #fff; text-align: center;">Compra Realizada com Sucesso!</h1>
                     <p style="font-size: 16px; font-family: Arial, sans-serif;">Olá, <strong>${name}</strong>,</p>
-                    <p style="font-size: 16px; font-family: Arial, sans-serif;">Agradecemos pela sua compra! Seu pedido foi processado com sucesso. Agora falta pouco para concluímos, clique no botão abaixo para criar uma conta na plataforma para você ter acesso a todos os conteúdos do curso!</p>
+                    <p style="font-size: 16px; font-family: Arial, sans-serif;">Agradecemos pela sua compra! Seu pedido foi processado com sucesso. Agora falta pouco para concluímos, clique no botão abaixo para criar uma conta na plataforma, e ter acesso a todos os conteúdos do curso!</p>
                     <a href="http://localhost:8080/?register=true&token=${tokenPendingAccount}" style="text-decoration: none;">
                     <button style="background-color: #b780ff; color: white; font-size: 16px; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-family: Arial, sans-serif;">
-                    Criar uma conta!
+                    Criar uma conta.
                     </button>
                     </a>
                     </body>
@@ -177,34 +177,6 @@ export default async function handler(req, res) {
             
             res.status(500).json({
             error: `UID não encontrado para o email fornecido`,
-        });
-        }
-    } else if (stripeEvent.type === 'checkout.session.expired') {
-        console.log(`Sessão expirada para o usuário ${name} (${userEmail})`);
-
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
-            },
-        });
-
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: userEmail,
-            subject: 'Parece que você não concluiu sua matrícula',
-            text: `Olá!\n\nPercebi que você começou a se matricular em nosso site, mas algo te impediu de finalizar. Vamos resolver isso juntos?\n\nResponda com o plano desejado e a forma de pagamento (cartão de crédito ou boleto) que eu te ajudo a finalizar a matrícula.\n\nCom carinho,\nGessyca 💖`,
-        };
-
-        try {
-            await transporter.sendMail(mailOptions);
-            console.log('Email enviado para o usuário sobre a sessão expirada');
-        } catch (error) {
-            console.error('Erro ao enviar email para o usuário sobre a sessão expirada:', error);
-            
-            res.status(500).json({
-            error: `Erro ao enviar email para o usuário sobre a sessão expirada: ${error.message}`,
         });
         }
     } else if (stripeEvent.type === 'charge.refunded') {
