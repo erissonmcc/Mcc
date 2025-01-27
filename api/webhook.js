@@ -18,11 +18,11 @@ const auth = admin.auth();
 
 export default async function handler(req, res) {
 
-    const stripeSignature = event.headers['stripe-signature'];
+const stripeSignature = req.headers['stripe-signature'];
     let stripeEvent;
 
     try {
-        stripeEvent = stripe.webhooks.constructEvent(event.body, stripeSignature, process.env.STRIPE_WEBHOOK_SECRET);
+        stripeEvent = stripe.webhooks.constructEvent(req.body, stripeSignature, process.env.STRIPE_WEBHOOK_SECRET);
     } catch (err) {
         console.error('Erro ao verificar assinatura do webhook:', err.message);
         
