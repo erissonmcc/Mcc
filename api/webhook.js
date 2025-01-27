@@ -14,6 +14,7 @@ if (!admin.apps.length) {
 const stripe = stripePackage(process.env.STRIPE_SECRET_KEY);
 
 const db = admin.firestore();
+const auth = admin.auth();
 
 
 export default async function handler(req, res) {
