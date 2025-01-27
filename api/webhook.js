@@ -1,3 +1,8 @@
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
 import stripePackage from 'stripe';
 import nodemailer from 'nodemailer';
 import admin from 'firebase-admin';
@@ -18,11 +23,17 @@ const auth = admin.auth();
 
 export default async function handler(req, res) {
 
-const stripeSignature = req.headers['stripe-signature'];
     let stripeEvent;
+    const stripeSignature = req.headers['stripe-signature'];
+    let rawBody = '';
 
+    // Lê o corpo bruto da requisição
+    req.on('data', chunk => {
+        rawBody += chunk;
+    });
+    console.log(rawBody);
     try {
-        stripeEvent = stripe.webhooks.constructEvent(req.body, stripeSignature, process.env.STRIPE_WEBHOOK_SECRET);
+        stripeEvent = stripe.webhooks.constructEvent(rawBody, stripeSignature, process.env.STRIPE_WEBHOOK_SECRET);
     } catch (err) {
         console.error('Erro ao verificar assinatura do webhook:', err.message);
         
