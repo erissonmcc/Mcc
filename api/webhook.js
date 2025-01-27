@@ -31,6 +31,7 @@ export default async function handler(req, res) {
     req.on('data', chunk => {
         rawBody += chunk;
     });
+    req.on('end', async () => {
     console.log(rawBody);
     try {
         stripeEvent = stripe.webhooks.constructEvent(rawBody, stripeSignature, process.env.STRIPE_WEBHOOK_SECRET);
@@ -250,6 +251,7 @@ export default async function handler(req, res) {
     }
 
     res.status(200).send('Evento de webhook processado com sucesso');
+    });
 };
 
 
