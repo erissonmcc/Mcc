@@ -16,7 +16,7 @@ const bucket = admin.storage().bucket();
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
     // Tratamento de requisição OPTIONS
@@ -64,11 +64,30 @@ export default async function handler(req, res) {
 
         // Função para gerar URL assinada e obter a duração do vídeo
         const { url, duration } = await getVideoUrlAndDuration(data);
-
+        const docInfoRef = db.collection('polarities')
+            .doc(videoId)
+        const docInfoRefSnapshot = await docInfoRef.get();
+        
+        if (docInfoRefSnapshot.exists) {
+            var dataInfo = docInfoRefSnapshot.data();
+            var likedAccount = dataInfo.likes.length;
+            var dislikeAccount = dataInfo.dislikes.length;
+            var marked
+            if (dataInfo.likes.includes(userId)) {
+               marked = 'like';
+            } else if (dataInfo.dislikes.includes(userId)) {
+                marked = 'dislike';
+            }
+        }
+        console.log(dataInfo);
+        console.log(likedAccount, dislikeAccount);
         // Retorna a URL e a duração do vídeo
         res.status(200).json({
             url: url,
             duration: duration,
+            liked: likedAccount || '0',
+            dislike: dislikeAccount || '0',
+            marked: marked || false
         });
     } catch (error) {
         console.error('Erro ao fornecer o link do usuário:', error);
