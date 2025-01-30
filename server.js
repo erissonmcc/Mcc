@@ -1,13 +1,13 @@
 import express from 'express';
 import { processWebhook } from './controllers/webhook.js';
-import { processCheckout } from '../controllers/checkout.js';
-import { processGetVideo } from '../controllers/getVideo.js';
-import { processRegister } from '../controllers/register.js';
+import { processCheckout } from './controllers/checkout.js';
+import { processGetVideo } from './controllers/getVideo.js';
+import { processRegister } from './controllers/register.js';
 
-import { processPolarities } from '../controllers/polarities.js';
-import { processVerifytoken } from '../controllers/verifytoken.js';
-import { processSendEmail } from '../controllers/sendEmail.js';
-import { processBotHandler } from '../controllers/botHandler.js';
+import { processPolarities } from './controllers/polarities.js';
+import { processVerifytoken } from './controllers/verifytoken.js';
+import { processSendEmail } from './controllers/sendEmail.js';
+import { processBotHandler } from './controllers/botHandler.js';
 
 const app = express();
 
