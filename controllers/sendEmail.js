@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 dotenv.config();
-const nodemailer = require('nodemailer');
+import nodemailer from 'nodemailer';
 
 async function obterLocalizacaoIP(ip) {
     const token = '4fd49878ba7c93'; // Substitua pelo seu token de acesso da ipinfo.io
