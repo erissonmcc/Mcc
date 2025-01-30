@@ -15,10 +15,7 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 export const processPolarities = async (req, res) => {
-
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    console.log('Solicitação:', req.method);
 
 // Tratamento de requisição OPTIONS
     if (req.method === 'OPTIONS') {
@@ -34,7 +31,7 @@ export const processPolarities = async (req, res) => {
     try {
         const { videoId, moduleId, intention } = req.query;
         const token = req.headers.authorization?.split('Bearer ')[1];
-
+        
         if (!videoId || !token || !["like", "dislike"].includes(intention) || !moduleId) {
             return res.status(400).json({ error: "Parâmetros inválidos" });
         }
