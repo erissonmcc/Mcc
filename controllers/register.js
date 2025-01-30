@@ -1,3 +1,5 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import admin from 'firebase-admin';
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 
@@ -12,7 +14,7 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 const auth = admin.auth();
 
-async function validateTokenAndGetUserData(token, req) {
+export const processRegister = async (req, res) => {
     const snapshot = await db.collection('pendingAccounts').where('token', '==', token).get();
 
     if (snapshot.empty) {

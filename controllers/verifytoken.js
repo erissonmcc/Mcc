@@ -1,4 +1,5 @@
-import { db, admin } from './firebaseAdmin';
+import dotenv from 'dotenv';
+dotenv.config();
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 
@@ -75,7 +76,8 @@ async function renewToken(email) {
     return { code: 'auth/new-link' };
 }
 
-export default async function handler(req, res) {
+export const processVerifytoken = async (req, res) => {
+    
     const headers = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',

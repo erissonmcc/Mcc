@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 const Groq = require('groq-sdk');
 const { db, dbRealtime, admin, auth } = require('./firebaseAdmin');
 
@@ -12,8 +15,8 @@ const generationConfig = {
   stop: null,
 };
 
-// Função principal do handler
-exports.handler = async (event) => {
+export const processBotHandler = async (req, res) => {
+    
   try {
     console.log("Iniciando a função Lambda");
 

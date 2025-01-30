@@ -1,8 +1,5 @@
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+import dotenv from 'dotenv';
+dotenv.config();
 import stripePackage from 'stripe';
 import nodemailer from 'nodemailer';
 import admin from 'firebase-admin';
@@ -21,7 +18,7 @@ const db = admin.firestore();
 const auth = admin.auth();
 
 
-export default async function handler(req, res) {
+export const processWebhook = async (req, res) => {
 
     let stripeEvent;
     const stripeSignature = req.headers['stripe-signature'];

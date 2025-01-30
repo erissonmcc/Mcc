@@ -1,3 +1,5 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import admin from 'firebase-admin';
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
@@ -13,7 +15,7 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 const bucket = admin.storage().bucket();
 
-export default async function handler(req, res) {
+export const processGetVideo = async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');

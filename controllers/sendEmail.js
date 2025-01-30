@@ -1,3 +1,5 @@
+import dotenv from 'dotenv';
+dotenv.config();
 const nodemailer = require('nodemailer');
 
 async function obterLocalizacaoIP(ip) {
@@ -14,7 +16,8 @@ async function obterLocalizacaoIP(ip) {
     }
 }
 
-exports.handler = async (event) => {
+export const processSendEmail = async (req, res) => {
+    
     const headers = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type',
