@@ -4,13 +4,14 @@ dotenv.config();
 import Stripe from 'stripe';
 import admin from 'firebase-admin';
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-
+if (!admin.apps.length) {
+    
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: 'https://nail-art-by-gessica-default-rtdb.firebaseio.com',
   storageBucket: "nail-art-by-gessica.appspot.com"
 });
-
+}
 const db = admin.firestore();
 
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);

@@ -2,8 +2,6 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const Groq = require('groq-sdk');
-const { db, dbRealtime, admin, auth } = require('./firebaseAdmin');
-
 // Configurações do Groq
 const groq = new Groq({ apiKey: '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' });
 const generationConfig = {
