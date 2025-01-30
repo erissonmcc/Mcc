@@ -1,8 +1,9 @@
-const express = require('express');
+import express from 'express';  // Importando express
+import { processCheckout } from '../controllers/checkout.js';  // Importando o controller
+
 const router = express.Router();
-const checkoutController = require('../controllers/checkoutController');
 
-// Endpoint simples para checkout
-router.post('/', checkoutController.processCheckout);
+// Defina suas rotas e use o controller
+router.get('/', processCheckout);
 
-module.exports = router;
+export default router;  // Exportando as rotas

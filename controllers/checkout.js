@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import Stripe from 'stripe';
 import admin from 'firebase-admin';
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
@@ -12,8 +15,7 @@ const db = admin.firestore();
 
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
-exports.processCheckout = (req, res) => {
-
+export const processCheckout = async (req, res) => {
     console.log('Nova solicitação recebida:', req.method, req.url);
 
     // Configurar cabeçalhos de CORS

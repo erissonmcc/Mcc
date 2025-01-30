@@ -1,4 +1,4 @@
-const express = require('express');
+import express from 'express';
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -6,12 +6,10 @@ const port = process.env.PORT || 3000;
 app.use(express.json());
 
 // Importando as rotas
-const checkoutRoutes = require('./routes/checkout');
-const webhookRoutes = require('./routes/webhook');
+import checkoutRoutes from './routes/checkout.js';
 
 // Prefixando todas as rotas com /api
 app.use('/api/checkout', checkoutRoutes);
-app.use('/api/webhook', webhookRoutes);
 
 // Iniciando o servidor
 app.listen(port, () => {
