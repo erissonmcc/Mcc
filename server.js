@@ -1,15 +1,13 @@
 import express from 'express';
 import cors from 'cors'; 
+import rateLimit from 'express-rate-limit';
+
 const app = express();
 
 app.use(cors({
   origin: 'http://localhost:8080',
 }));
 
-const rateLimit = require('express-rate-limit');
-
-
-// Defina o limite de requisições, por exemplo, 100 requisições por 15 minutos.
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
   max: 100,
