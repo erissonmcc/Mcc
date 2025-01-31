@@ -7,12 +7,23 @@ const app = express();
 app.use(cors({
   origin: 'http://localhost:8080',
 }));
+const message = JSON.stringify({
+    error: "Request blocked due to excessive use of the API",
+    code: 429,
+    status: "Too Many Requests",
+    timestamp: new Date().toISOString(),
+    retryAfter: "15m",
+    suggestion: "Reduce the frequency of requests to avoid stricter blocks."
+});
+
+const jsonMessage = JSON.parse(message);
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100,
-  message: 'request blocked due to excessive use of the API',
-  headers: true,
+  max: 200,
+  message: jsonMessage,
+  standardHeaders: true, 
+  legacyHeaders: false,
 });
 
 app.use(limiter);
