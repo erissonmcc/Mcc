@@ -27,7 +27,6 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 
-app.use(limiter);
 app.use(compression());
 
 import { processWebhook } from './controllers/webhook.js';
