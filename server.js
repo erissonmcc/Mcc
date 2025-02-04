@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors'; 
 import rateLimit from 'express-rate-limit';
+import compression from 'compression';
 
 const app = express();
 
@@ -27,6 +28,7 @@ const limiter = rateLimit({
 });
 
 app.use(limiter);
+app.use(compression());
 
 import { processWebhook } from './controllers/webhook.js';
 import { processCheckout } from './controllers/checkout.js';
