@@ -4,7 +4,7 @@ import rateLimit from 'express-rate-limit';
 import compression from 'compression';
 
 const app = express();
-
+console.log('Isso é um teste');
 app.use(cors({
   origin: 'http://localhost:8080',
 }));
