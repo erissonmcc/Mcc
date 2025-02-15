@@ -20,7 +20,7 @@ const message = JSON.stringify({
 const jsonMessage = JSON.parse(message);
 
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
+  windowMs: 15 * 60 * 1000, // 15 min
   max: 200,
   message: jsonMessage,
   standardHeaders: true, 
