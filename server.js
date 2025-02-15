@@ -39,8 +39,7 @@ import { processVerifytoken } from './controllers/verifytoken.js';
 import { processSendEmail } from './controllers/sendEmail.js';
 import { processBotHandler } from './controllers/botHandler.js';
 
-
-app.get('/webhook', processWebhook);
+app.post('/webhook', processWebhook);
 app.get('/checkout', processCheckout);
 app.get('/getVideo', processGetVideo);
 app.get('/register', processRegister);
@@ -53,3 +52,4 @@ app.get('/botHandler', processBotHandler);
 app.listen(3000, () => {
   console.log('Server is running on http://localhost:3000');
 });
+
