@@ -41,9 +41,9 @@ async function renewToken(email) {
 
     console.log('Token renovado com sucesso!');
     const transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
+        host: "smtp.umbler.com",
+        port: 587,
+        secure: false,
         auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASS,
@@ -55,7 +55,7 @@ async function renewToken(email) {
         from: process.env.EMAIL_USER,
         to: data.email,
         subject: 'Criar sua conta',
-        text: 'O link para completar sua conta expirou!',
+        text: 'O link para criar sua conta expirou!',
         html: `
         <html>
         <body>
@@ -78,11 +78,7 @@ async function renewToken(email) {
 
 export const processVerifytoken = async (req, res) => {
     
-    const headers = {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    };
+res.setHeader('Access-Control-Allow-Credentials', 'true');
 
     if (req.method === 'OPTIONS') {
         console.log('Solicitação OPTIONS recebida');
@@ -112,11 +108,9 @@ export const processVerifytoken = async (req, res) => {
 
         const doc = snapshot.docs[0];
         const data = doc.data();
-
-        const userIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-        console.log('Ip do usuário:', userIp);
-
-        if (data.ip !== userIp) {
+        let deviceId = req.cookies?.deviceId;
+        console.log(deviceId);
+        if (data.deviceId !== deviceId || !data.deviceId) {
             res.set(headers).status(401).json({ code: 'auth/unauthorized-ip' });
             return;
         }

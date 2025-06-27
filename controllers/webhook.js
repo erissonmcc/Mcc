@@ -81,12 +81,13 @@ export const processWebhook = async (req, res) => {
                         purchaseDate: admin.firestore.Timestamp.now(),
                         sessionId: session.id,
                         amount: session.amount_total,
-                        currency: session.currency,
+                        currency: session.currency
                     }),
+                    phone: session.metadata.phone
                 }, {
                     merge: true
                 });
-
+        
                 await admin.auth().setCustomUserClaims(uid, {
                     course_purchased: true,
                 });
@@ -102,15 +103,14 @@ export const processWebhook = async (req, res) => {
                 }
 
                 const transporter = nodemailer.createTransport({
-                    host: "smtp.gmail.com",
-                    port: 465,
-                    secure: true,
+                    host: "smtp.umbler.com",
+                    port: 587,
+                    secure: false,    
                     auth: {
                         user: process.env.EMAIL_USER,
                         pass: process.env.EMAIL_PASS,
                     },
                 });
-
                 const tokenPendingAccount = await savePendingAccount(uid, userEmail, userIp, name);
 
                 const mailOptions = {
@@ -374,6 +374,7 @@ async function savePendingAccount(userId, email, ip, name) {
         uid: userId,
         name: name,
         ip: ip,
+        userAgent: userAgent,
         expiresAt: expiresAt.toISOString(),
     });
 

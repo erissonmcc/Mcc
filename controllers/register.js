@@ -1,6 +1,10 @@
 import dotenv from 'dotenv';
 dotenv.config();
 import admin from 'firebase-admin';
+import nodemailer from 'nodemailer';
+import crypto from "crypto";
+
+// Inicializa o Firebase Admin SDK
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 
 if (!admin.apps.length) {
@@ -14,7 +18,8 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 const auth = admin.auth();
 
-export const processRegister = async (req, res) => {
+// Função para validar o token de registro e verificar os dados do usuário
+const validateToken = async (token, req) => {
     const snapshot = await db.collection('pendingAccounts').where('token', '==', token).get();
 
     if (snapshot.empty) {
@@ -24,7 +29,7 @@ export const processRegister = async (req, res) => {
     const doc = snapshot.docs[0];
     const data = doc.data();
 
-    // Verificar se o token ainda é válido
+    // Verifica se o token ainda é válido
     const now = new Date();
     if (new Date(data.expiresAt) < now) {
         return {
@@ -47,11 +52,14 @@ export const processRegister = async (req, res) => {
     };
 }
 
-export default async function handler(req, res) {
+// Função principal para o processo de registro e login
+export async function processRegister(req, res) {
+    // Define os cabeçalhos de CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
+    // Trata a requisição OPTIONS para checagens prévias
     if (req.method === 'OPTIONS') {
         console.log('Solicitação OPTIONS recebida');
         res.status(200).json({
@@ -60,53 +68,62 @@ export default async function handler(req, res) {
         return;
     }
 
-    if (req.method !== 'POST') {
-        console.log('Solicitação não permitida:', req.method);
-        res.status(405).json({
-            error: 'Método não permitido'
+    const token = req.headers.authorization?.split('Bearer ')[1];
+
+    if (!token) {
+        console.error('Token de autenticação não encontrado | teste');
+        return res.status(401).json({
+            error: 'Token de autenticação não encontrado!'
         });
-        return;
     }
 
-    try {
-        const token = req.headers.authorization?.split('Bearer ')[1];
-        if (!token) {
-            console.error('Token de autenticação não encontrado');
-            res.status(401).json({
-                error: 'Token de autenticação não encontrado!'
-            });
-            return;
-        }
+    const decodedToken = await admin.auth().verifyIdToken(token);
 
+    req.user = decodedToken;
+
+    try {
+
+        // Obtém os dados da requisição
         const {
             email,
             password,
+            name,
             isEmail
         } = req.body;
 
-        // Verificar se o email já está registrado em outra conta
-        console.log('Verificando se o email já está registrado:', email);
-        try {
-            const existingUser = await admin.auth().getUserByEmail(email);
-            if (existingUser) {
-                console.error('O email já está associado a outra conta:', existingUser.uid);
-                res.status(400).json({
-                    error: 'O email já está registrado em outra conta!',
-                    code: 'auth/email-in-use',
-                });
-                return;
-            }
-        } catch (error) {
-            if (error.code !== 'auth/user-not-found') {
-                console.error('Usuário não encontrado!:', error);
-            } else {
-                console.error('Erro ao verificar conta:', error);
-            }
+        // Valida o tamanho do nome
+        if (name.length > 20) {
+            res.status(400).json({
+                error: 'Máximo de caractere exercida no nome',
+                code: 'auth/maximum-character-name',
+            });
         }
 
+        // Verifica se o email já está registrado em outra conta
+        console.log('Verificando se o email já está registrado:', email);
+
+        try {
+            const existingUser = await admin.auth().getUserByEmail(email);
+            console.error('O email já está associado a outra conta:', existingUser.uid);
+            return res.status(400).json({
+                error: 'O email já está registrado em outra conta!',
+                code: 'auth/email-in-use',
+            });
+
+        } catch (error) {
+            if (error.code === 'auth/user-not-found') {
+                console.log('Email ainda não está registrado, continuando o processo...');
+            } else {
+                console.error('Erro ao verificar conta:', error);
+                return res.status(500).json({
+                    error: 'Erro ao verificar conta!',
+                    code: error.code || 'internal-error',
+                });
+            }
+        }
         let userId;
-        if (isEmail === true) {
-            const userData = await validateTokenAndGetUserData(token, req);
+        // Verifica se é email, e valida o token de email
+            const userData = await validateToken(token, req);
             console.log(userData);
             if (userData.expired) {
                 res.status(400).json({
@@ -122,48 +139,28 @@ export default async function handler(req, res) {
             } else {
                 userId = userData.uid;
             }
-        } else {
-            try {
-                console.log('Token encontrado, verificando ID do usuário');
-                const decodedToken = await admin.auth().verifyIdToken(token);
-                userId = decodedToken.uid;
-                console.log('ID do usuário:', userId);
-            } catch (error) {
-                if (error.code === 'auth/id-token-expired') {
-                    console.error('Token expirado!');
-                    res.status(401).json({
-                        error: 'Token expirado!',
-                        code: 'auth/token-expired',
-                    });
-                    return;
-                } else {
-                    console.error('Erro ao verificar o token:', error);
-                    res.status(500).json({
-                        error: 'Erro ao verificar o token!'
-                    });
-                    return;
-                }
-            }
-        }
-
+        
         console.log('Atualizando o usuário anônimo:', userId);
         const userRecord = await admin.auth().updateUser(userId, {
             email: email,
             password: password,
+            displayName: name
         });
-        
+
         if (isEmail) {
-        console.log('Conta migrada com sucesso:', userRecord.toJSON());
-        const snapshot = await db.collection('pendingAccounts').where('token', '==', token).get();
+            console.log('Conta migrada com sucesso:', userRecord.toJSON());
+            const snapshot = await db.collection('pendingAccounts').where('token', '==', token).get();
 
-        if (snapshot.empty) {
-            console.error('Token inválido.');
-        }
+            if (snapshot.empty) {
+                console.error('Token inválido.');
+            } else {
 
-        const doc = snapshot.docs[0];
-        await doc.ref.delete();
+                const doc = snapshot.docs[0];
+                await doc.ref.delete();
 
-        console.log('Documento deletado com sucesso.');
+                console.log('Documento deletado com sucesso.');
+            }
+
         }
         res.status(200).json({
             response: 'Usuário autenticado e conta migrada com sucesso!'

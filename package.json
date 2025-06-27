@@ -9,9 +9,15 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.812.0",
+    "@aws-sdk/s3-request-presigner": "^3.812.0",
+    "@aws-sdk/signature-v4": "^3.370.0",
+    "aws-cloudfront-sign": "^3.0.2",
+    "aws-sdk": "^2.1692.0",
     "axios": "^1.7.3",
     "body-parser": "^1.20.2",
     "compression": "^1.7.5",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
     "dotenv": "^16.4.7",
@@ -19,13 +25,16 @@
     "express-rate-limit": "^7.5.0",
     "firebase-admin": "^13.0.2",
     "fluent-ffmpeg": "^2.1.3",
+    "google-libphonenumber": "^3.2.42",
     "groq-sdk": "^0.5.0",
+    "multer": "^1.4.5-lts.2",
     "node-fetch": "^3.3.2",
     "nodemailer": "^6.9.14",
     "pdf-lib": "^1.17.1",
     "rate-limit": "^0.1.1",
     "serverless-http": "^2.7.0",
-    "stripe": "^17.5.0"
+    "stripe": "^17.5.0",
+    "ws": "^8.18.1"
   },
   "type": "module",
   "devDependencies": {
