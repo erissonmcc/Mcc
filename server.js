@@ -24,21 +24,21 @@ if (!admin.apps.length) {
 
 const app = express();
 
-app.use(express.json());
-app.use(cookieParser()); 
-  
+app.use(cookieParser());
+
 app.use(cors({
   origin: (origin, callback) => {
     const allowedOrigins = [
       'http://localhost:8080',
-      'http://localhost:37993',
+      'http://localhost:36189',
       'http://app.127.0.0.1.nip.io:8080',
-      'https://dominio.com',
+      'http://192.168.3.230:37993',
       'https://curso.dominio.com',
-      'https://app.dominio.com',
-      'https://42fe-2804-ec8-56-62b8-245b-7fe1-924e-d054.ngrok-free.app',
-      'https://72fd-2804-ec8-56-62b8-245b-7fe1-924e-d054.ngrok-free.app'
-    ];
+      'http://192.168.3.230:8080',
+      'https://nailsgessyca.com.br',
+      'https://e2f2-2804-ec8-56-62b8-245b-7fe1-924e-d054.ngrok-free.app',
+      'https://3abb-2804-ec8-56-62b8-245b-7fe1-924e-d054.ngrok-free.app',
+      ];
 
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
@@ -117,17 +117,24 @@ import {
     uploadVideo
 } from './controllers/upload.js';
 
-app.post('/webhook', processWebhook);
+app.post(
+  '/webhook',
+  express.raw({ type: 'application/json' }),
+  processWebhook
+);
+
+app.use(express.json());
 app.post('/checkout', processCheckout);
 app.get('/getVideo', processGetVideo);
 app.post('/register', processRegister);
 app.get('/polarities', processPolarities);
-app.get('/verifytoken', processVerifytoken);
+app.post('/verifytoken', processVerifytoken);
 app.get('/sendEmail', processSendEmail);
 app.post('/support', processSupport);
 app.get('/getUsers-admin', processGetAllUsers);
 app.get('/getSupport-admin', processGetSupport);
 app.post('/upload', uploadVideo);
+
 import {
     processTeste
 } from './controllers/teste.js';

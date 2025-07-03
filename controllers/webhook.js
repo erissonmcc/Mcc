@@ -21,32 +21,37 @@ const auth = admin.auth();
 export const processWebhook = async (req, res) => {
 
     let stripeEvent;
-    const stripeSignature = req.headers['stripe-signature'];
-    let rawBody = '';
+    const sig = req.headers['stripe-signature'];
 
-    // Lê o corpo bruto da requisição
-    req.on('data', chunk => {
-        rawBody += chunk;
-    });
-    req.on('end', async () => {
-    console.log(rawBody);
     try {
-        stripeEvent = stripe.webhooks.constructEvent(rawBody, stripeSignature, process.env.STRIPE_WEBHOOK_SECRET);
+        stripeEvent = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
     } catch (err) {
-        console.error('Erro ao verificar assinatura do webhook:', err.message);
-        
-         res.status(500).json({
-            error: `Webhook Error: ${err.message}`,
-        });
+        console.log('⚠️  Assinatura inválida:', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
     const session = stripeEvent.data.object;
-    const userIp = session.metadata.ip;
-    console.log('Token encontrado, verificando ID do usuário');
-    const uid = session.metadata.uid;
-    const productName = session.metadata.productName;
     
-    console.log('ID do usuário:', uid);
+    if (session.metadata && session.metadata.uid) {
+        var {
+            visitorId,
+            uid
+        } = session.metadata;
+        console.log('ID do usuário:', uid);
+    } else {
+        return res.sendStatus(200);
+    }
+
+    const sessionId = stripeEvent.data.object.id;
+
+    const lineItems = await stripe.checkout.sessions.listLineItems(sessionId, {
+        expand: ['data.price.product'],
+    });
+    let productName;
+    lineItems.data.forEach((item) => {
+        productName = item.price.product.name;
+        console.log('✅ Produto comprado:', productName);
+    });
 
     if (stripeEvent.type === 'checkout.session.completed') {
         const name = session.customer_details.name;
@@ -64,10 +69,10 @@ export const processWebhook = async (req, res) => {
                 }
             } catch (error) {
                 console.error('Erro ao buscar UID pelo email:', error);
-                
-                 res.status(500).json({
-            error: `Erro ao buscar UID pelo email: ${error.message}`,
-        });
+
+                res.status(500).json({
+                    error: `Erro ao buscar UID pelo email: ${error.message}`,
+                });
             }
         }
 
@@ -87,7 +92,7 @@ export const processWebhook = async (req, res) => {
                 }, {
                     merge: true
                 });
-        
+
                 await admin.auth().setCustomUserClaims(uid, {
                     course_purchased: true,
                 });
@@ -105,30 +110,111 @@ export const processWebhook = async (req, res) => {
                 const transporter = nodemailer.createTransport({
                     host: "smtp.umbler.com",
                     port: 587,
-                    secure: false,    
+                    secure: false,
                     auth: {
                         user: process.env.EMAIL_USER,
                         pass: process.env.EMAIL_PASS,
                     },
                 });
-                const tokenPendingAccount = await savePendingAccount(uid, userEmail, userIp, name);
+                const tokenPendingAccount = await savePendingAccount(uid, userEmail, name, visitorId);
 
                 const mailOptions = {
-                    from: process.env.EMAIL_USER,
+                    from: '"Nails Gessyca" <contato@nailsgessyca.com.br>',
                     to: userEmail,
                     subject: 'Compra realizada com sucesso!',
                     text: 'Obrigado pela sua compra!',
                     html: `
                     <html>
-                    <body>
-                    <h1 style="color: #fff; text-align: center;">Compra Realizada com Sucesso!</h1>
-                    <p style="font-size: 16px; font-family: Arial, sans-serif;">Olá, <strong>${name}</strong>,</p>
-                    <p style="font-size: 16px; font-family: Arial, sans-serif;">Agradecemos pela sua compra! Seu pedido foi processado com sucesso. Agora falta pouco para concluímos, clique no botão abaixo para criar uma conta na plataforma, e ter acesso a todos os conteúdos do curso!</p>
-                    <a href="http://localhost:8080/?register=true&token=${tokenPendingAccount}" style="text-decoration: none;">
-                    <button style="background-color: #b780ff; color: white; font-size: 16px; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-family: Arial, sans-serif;">
-                    Criar uma conta.
-                    </button>
+                    <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); min-height: 100vh;">
+
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 0; padding: 0;">
+                    <tr>
+                    <td style="padding: 40px 20px;">
+
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1); overflow: hidden;">
+
+                    <!-- Header de sucesso -->
+                    <tr>
+                    <td style="background: linear-gradient(135deg, #00c851 0%, #00ff88 100%); padding: 40px 30px; text-align: center;">
+                    <div style="width: 80px; height: 80px; background: rgba(255, 255, 255, 0.2); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 40px;">✅</div>
+                    <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0; line-height: 1.2;">Compra Realizada!</h1>
+                    <p style="color: rgba(255, 255, 255, 0.95); font-size: 18px; margin: 10px 0 0 0; font-weight: 500;">Parabéns! Seu pedido foi processado com sucesso 🎉</p>
+                    </td>
+                    </tr>
+
+                    <!-- Conteúdo principal -->
+                    <tr>
+                    <td style="padding: 40px 30px;">
+
+                    <div style="text-align: left;">
+                    <p style="font-size: 20px; color: #333333; margin: 0 0 20px 0; font-weight: 600;">Olá, <strong style="color: #00c851;">${name}</strong>! 🚀</p>
+
+                    <p style="font-size: 16px; color: #666666; line-height: 1.6; margin: 0 0 25px 0;">
+                    Muito obrigado pela sua compra! Ficamos extremamente felizes em tê-lo(a) conosco. Seu pedido foi processado com sucesso e agora você está a apenas um passo de acessar todo o conteúdo exclusivo.
+                    </p>
+
+                    <!-- Card de destaque -->
+                    <div style="background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); border: 2px solid #f39c12; border-radius: 12px; padding: 25px; margin: 0 0 30px 0; text-align: center;">
+                    <div style="font-size: 32px; margin: 0 0 15px 0;">🎓</div>
+                    <h3 style="color: #d68910; font-size: 18px; font-weight: 700; margin: 0 0 10px 0;">Próximo Passo</h3>
+                    <p style="font-size: 15px; color: #8d6e00; margin: 0; line-height: 1.5;">
+                    Crie sua conta na plataforma para ter acesso completo a todos os conteúdos do curso!
+                    </p>
+                    </div>
+
+                    <p style="font-size: 16px; color: #666666; line-height: 1.6; margin: 0 0 35px 0;">
+                    Clique no botão abaixo para criar sua conta e começar sua jornada de aprendizado. Todo o material já está esperando por você! 📚
+                    </p>
+                    </div>
+
+                    <!-- Botão de ação principal -->
+                    <div style="text-align: center; margin: 0 0 30px 0;">
+                    <a href="${process.env.URL_REGISTER}/?tokenRegister=${tokenPendingAccount}" style="display: inline-block; text-decoration: none; background: linear-gradient(135deg, #b780ff 0%, #9f5aff 100%); color: #ffffff; font-size: 18px; font-weight: 700; padding: 18px 45px; border-radius: 50px; box-shadow: 0 10px 30px rgba(183, 128, 255, 0.4); transition: all 0.3s ease;">
+                    🎯 Criar Minha Conta Agora
                     </a>
+                    </div>
+
+                    <!-- Informações adicionais -->
+                    <div style="background: #f8f9ff; border-radius: 10px; padding: 20px; margin: 0 0 20px 0;">
+                    <h4 style="color: #333333; font-size: 16px; font-weight: 600; margin: 0 0 15px 0;">📋 O que você receberá:</h4>
+                    <div style="font-size: 14px; color: #555555; line-height: 1.6;">
+                    <p style="margin: 0 0 8px 0;">✨ Acesso completo ao curso</p>
+                    <p style="margin: 0 0 8px 0;">📱 Plataforma disponível 24/7</p>
+                    <p style="margin: 0 0 8px 0;">🎓 Certificado de conclusão</p>
+                    <p style="margin: 0;">🚀 Suporte da comunidade</p>
+                    </div>
+                    </div>
+
+                    <div style="text-align: center;">
+                    <p style="font-size: 13px; color: #999999; margin: 0;">
+                    Este link de criação de conta é válido por 48 horas. Não compartilhe com terceiros.
+                    </p>
+                    </div>
+
+                    </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                    <td style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); padding: 30px; text-align: center;">
+                    <div style="margin: 0 0 15px 0;">
+                    <p style="font-size: 16px; color: #ffffff; margin: 0; font-weight: 600;">Bem-vindo(a) à nossa comunidade! 🤝</p>
+                    </div>
+                    <p style="font-size: 14px; color: #bdc3c7; margin: 0 0 10px 0;">
+                    Dúvidas? Nossa equipe está aqui para ajudar!
+                    </p>
+                    <p style="font-size: 12px; color: #95a5a6; margin: 0;">
+                    Este é um email automático. Por favor, não responda diretamente.
+                    </p>
+                    </td>
+                    </tr>
+
+                    </table>
+
+                    </td>
+                    </tr>
+                    </table>
+
                     </body>
                     </html>
                     `,
@@ -175,17 +261,17 @@ export const processWebhook = async (req, res) => {
                 console.log('Notificações enviadas para administradores');
             } catch (error) {
                 console.error('Erro ao registrar compra no Firestore, enviar e-mail ou notificações:', error);
-                
-                 res.status(500).json({
-            error: `Erro ao registrar compra no Firestore, enviar e-mail ou notificações: ${error.message}`,
-        });
+
+                res.status(500).json({
+                    error: `Erro ao registrar compra no Firestore, enviar e-mail ou notificações: ${error.message}`,
+                });
             }
         } else {
             console.error('UID não encontrado para o email:', userEmail);
-            
+
             res.status(500).json({
-            error: `UID não encontrado para o email fornecido`,
-        });
+                error: `UID não encontrado para o email fornecido`,
+            });
         }
     } else if (stripeEvent.type === 'charge.refunded') {
         const refund = stripeEvent.data.object;
@@ -239,28 +325,29 @@ export const processWebhook = async (req, res) => {
         } catch (error) {
             console.error('Erro ao processar evento de reembolso:', error);
             res.status(500).json({
-            error: `Erro ao processar evento de reembolso: ${error.message}`,
-        });
-            
-             res.status(200).send('');
+                error: `Erro ao processar evento de reembolso: ${error.message}`,
+            });
+
+            res.status(200).send('');
         }
     }
 
     res.status(200).send('Evento de webhook processado com sucesso');
-    });
+
 };
 
 
 async function assignDiscordRole(discordUserId) {
     try {
         // Primeiro, busque os detalhes do membro do servidor (incluindo os cargos atuais)
-        const getUserResponse = await fetch(`https://discord.com/api/v10/guilds/${process.env.DISCORD_GUILD_ID}/members/${discordUserId}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bot ${process.env.BOT_TOKEN}`,
-                'Content-Type': 'application/json',
-            },
-        });
+        const getUserResponse = await fetch(`https://discord.com/api/v10/guilds/${process.env.DISCORD_GUILD_ID}/members/${discordUserId}`,
+            {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bot ${process.env.BOT_TOKEN}`,
+                    'Content-Type': 'application/json',
+                },
+            });
 
         if (!getUserResponse.ok) {
             const errorMsg = await getUserResponse.text();
@@ -358,7 +445,7 @@ async function sendEmbedMessage(discordUserId) {
 
 import crypto from 'crypto';
 
-async function savePendingAccount(userId, email, ip, name) {
+async function savePendingAccount(userId, email, name, visitorId) {
     // Gerar um token único
     const token = crypto.randomBytes(64).toString('hex');
 
@@ -373,8 +460,7 @@ async function savePendingAccount(userId, email, ip, name) {
         token: token,
         uid: userId,
         name: name,
-        ip: ip,
-        userAgent: userAgent,
+        visitorId: visitorId,
         expiresAt: expiresAt.toISOString(),
     });
 

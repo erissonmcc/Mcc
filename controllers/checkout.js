@@ -22,7 +22,8 @@ export const processCheckout = async (req, res) => {
     console.log('Nova solicitação recebida:', req.method, req.url);
 
     // CORS
- res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8080');
+    const origin = req.headers.origin;
+    res.setHeader('Access-Control-Allow-Origin', origin); // <- pega dinamicamente do request
 res.setHeader('Access-Control-Allow-Credentials', 'true');
 res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
 res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -44,7 +45,7 @@ res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
         const userId = decodedToken.uid;
         console.log('ID do usuário:', userId);
 
-        const { productId, phone } = req.body;
+        const { productId, phone, visitorId } = req.body;
 
         if (!phone) {
             return res.status(400).json({ error: 'O número de telefone é obrigatório.' });
@@ -76,40 +77,16 @@ res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
                 error: 'Erro ao processar o pagamento. Produto não encontrado.',
             });
         }
-
-        const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || null;
-        // Obter ou gerar deviceId
-        let deviceId = req.cookies?.deviceId;
-        if (!deviceId) {
-            deviceId = randomUUID();
-
-            // Criar cookie compartilhado entre dominios
-            res.cookie('deviceId', deviceId, {
-                domain: '.ngrok-free.app',
-                path: '/',
-                secure: false,
-                httpOnly: false,
-                sameSite: 'Lax'
-            });
-
-            console.log('Novo deviceId criado e cookie enviado:', deviceId);
-        } else {
-            console.log('deviceId já existente no cookie:', deviceId);
-        }
         
-        const userAgent = req.headers['user-agent'] || 'desconhecido';
-        console.log('user-agent:', userAgent);
         const paymentIntent = await stripe.paymentIntents.create({
             amount: amount,
             currency: 'brl',
             metadata: {
-                ip: userIp,
                 uid: userId,
                 productId: productId,
                 productName: productName,
                 phone: e164Phone,
-                deviceId: deviceId,
-                userAgent: userAgent
+                visitorId: visitorId,
             }
         });
 

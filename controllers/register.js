@@ -36,10 +36,11 @@ const validateToken = async (token, req) => {
             expired: true,
         };
     }
+    const { visitorId } = req.body;
 
     const userIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
     console.log('Ip do usuário:', userIp);
-    if (data.ip !== userIp) {
+    if (data.visitorId !== visitorId) {
         return {
             code: 'auth/unauthorized-ip',
         };
@@ -87,17 +88,8 @@ export async function processRegister(req, res) {
         const {
             email,
             password,
-            name,
             isEmail
         } = req.body;
-
-        // Valida o tamanho do nome
-        if (name.length > 20) {
-            res.status(400).json({
-                error: 'Máximo de caractere exercida no nome',
-                code: 'auth/maximum-character-name',
-            });
-        }
 
         // Verifica se o email já está registrado em outra conta
         console.log('Verificando se o email já está registrado:', email);
@@ -122,24 +114,23 @@ export async function processRegister(req, res) {
             }
         }
         let userId;
-        // Verifica se é email, e valida o token de email
-            const userData = await validateToken(token, req);
-            console.log(userData);
-            if (userData.expired) {
-                res.status(400).json({
-                    error: 'Token Expirado!',
-                    code: 'auth/token-expired',
-                });
-                return;
-            } else if (userData.code === 'auth/unauthorized-ip') {
-                res.set(headers).status(401).json({
-                    code: 'auth/unauthorized-ip'
-                });
-                return;
-            } else {
-                userId = userData.uid;
-            }
-        
+        const userData = await validateToken(token, req);
+        console.log(userData);
+        if (userData.expired) {
+            res.status(400).json({
+                error: 'Token Expirado!',
+                code: 'auth/token-expired',
+            });
+            return;
+        } else if (userData.code === 'auth/unauthorized-ip') {
+            res.set(headers).status(401).json({
+                code: 'auth/unauthorized-ip'
+            });
+            return;
+        } else {
+            userId = userData.uid;
+        }
+
         console.log('Atualizando o usuário anônimo:', userId);
         const userRecord = await admin.auth().updateUser(userId, {
             email: email,
