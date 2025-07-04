@@ -86,7 +86,7 @@ export const processCheckout = async (req, res) => {
         amount;
         if (productId === 'PR20-X9A7G1ZK') {
             productName = 'Portiça Realista 2.0';
-            amount = 50;
+            amount = 500;
         } else {
             return res.status(404).json({
                 error: 'Erro ao processar o pagamento. Produto não encontrado.',
