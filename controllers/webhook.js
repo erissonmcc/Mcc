@@ -30,32 +30,25 @@ export const processWebhook = async (req, res) => {
         return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    const session = stripeEvent.data.object;
-    
-    if (session.metadata && session.metadata.uid) {
+    const paymentIntent = event.data.object;
+
+    if (paymentIntent.metadata && paymentIntent.metadata.uid) {
         var {
             visitorId,
-            uid
-        } = session.metadata;
+            uid,
+            productName
+        } = paymentIntent.metadata;
         console.log('ID do usuário:', uid);
     } else {
         return res.sendStatus(200);
     }
-
-    const sessionId = stripeEvent.data.object.id;
-
-    const lineItems = await stripe.checkout.sessions.listLineItems(sessionId, {
-        expand: ['data.price.product'],
-    });
-    let productName;
-    lineItems.data.forEach((item) => {
-        productName = item.price.product.name;
-        console.log('✅ Produto comprado:', productName);
-    });
+    const paymentMethodId = paymentIntent.payment_method;
 
     if (stripeEvent.type === 'payment_intent.succeeded') {
-        const name = session.customer_details.name;
-        const userEmail = session.customer_details.email;
+        const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+
+        const name = paymentMethod.billing_details.name;
+        const userEmail = paymentMethod.billing_details.email;
         console.log(`Email do cliente: ${userEmail}`);
         console.log(`Nome do produto: ${productName}`);
         console.log(`Nome do titular do cartão: ${name}`);
@@ -79,16 +72,19 @@ export const processWebhook = async (req, res) => {
         if (uid) {
             const userRef = db.collection('users').doc(uid);
 
+            const sessionId = paymentIntent.id;
+            const amount = paymentIntent.amount;
+            const currency = paymentIntent.currency;
             try {
                 await userRef.set({
                     purchases: admin.firestore.FieldValue.arrayUnion({
-                        productName: session.metadata.productName,
+                        productName: productName,
                         purchaseDate: admin.firestore.Timestamp.now(),
-                        sessionId: session.id,
-                        amount: session.amount_total,
-                        currency: session.currency
+                        sessionId,
+                        amount,
+                        currency
                     }),
-                    phone: session.metadata.phone
+                    phone: paymentIntent.metadata.phone
                 }, {
                     merge: true
                 });
@@ -100,12 +96,6 @@ export const processWebhook = async (req, res) => {
                 console.log("Claim de role adicionado com sucesso!");
 
                 console.log(`Compra registrada para o usuário ${uid}`);
-
-                // Verifica se o produto é o VIP e atribui o cargo no Discord
-                if (session.metadata.productId === 'qUemZpeFAYIoZMDV4Jpp') {
-                    const discordUserId = session.metadata.discordId;
-                    await assignDiscordRole(discordUserId);
-                }
 
                 const transporter = nodemailer.createTransport({
                     host: "smtp.umbler.com",
@@ -249,8 +239,6 @@ export const processWebhook = async (req, res) => {
                         data: {
                             productName: productName,
                             purchaseDate: admin.firestore.Timestamp.now().toString(),
-                            amount: session.amount_total.toString(),
-                            currency: session.currency,
                         },
                     };
 
@@ -274,61 +262,67 @@ export const processWebhook = async (req, res) => {
             });
         }
     } else if (stripeEvent.type === 'charge.refunded') {
-        const refund = stripeEvent.data.object;
-        const chargeId = refund.charge;
+        const paymentIntent = stripeEvent.data.object;
 
-        try {
-            // Buscar a sessão de checkout original
-            const charge = await stripe.charges.retrieve(chargeId);
-            const session = await stripe.checkout.sessions.retrieve(charge.metadata.session_id);
-            const userName = session.customer_details.name;
-            const userEmail = session.customer_email;
-            const uid = session.metadata.uid;
+        // Verifica se há charges associadas
+        const charges = paymentIntent.charges?.data;
+        if (!charges || charges.length === 0) {
+            console.error('Nenhuma charge encontrada no paymentIntent.');
+            return;
+        }
 
-            // Configurar o transporte de e-mail
+        const charge = charges[0];
+
+        // Extrai dados do cliente
+        const userName = charge.billing_details?.name || 'Cliente';
+        const userEmail = charge.billing_details?.email;
+        const uid = paymentIntent.metadata?.uid;
+
+        // Verifica se foi realmente reembolsado
+        if (charge.refunded || charge.amount_refunded > 0) {
+            // Envia e-mail
             const transporter = nodemailer.createTransport({
-                service: 'gmail', // ou outro serviço de e-mail
+                service: 'gmail',
                 auth: {
                     user: process.env.EMAIL_USER,
                     pass: process.env.EMAIL_PASS,
                 },
             });
 
-            // Definir a mensagem do e-mail
+            const valorReembolsado = (charge.amount_refunded / 100).toFixed(2);
+
             const mailOptions = {
                 from: process.env.EMAIL_USER,
                 to: userEmail,
-                subject: 'Seu reembolso foi processado',
-                text: `Olá ${userName},\n\nInformamos que seu reembolso foi processado com sucesso. O valor de R$${(refund.amount / 100).toFixed(2)} foi reembolsado para o seu método de pagamento original.\n\nSe você tiver alguma dúvida ou precisar de mais informações, não hesite em nos contatar.\n\nCom amor,\nGessyca Nails ♥️`,
+                subject: 'Reembolso processado',
+                text: `Olá ${userName},\n\nSeu reembolso no valor de R$ ${valorReembolsado} foi processado com sucesso. O valor será devolvido para o método de pagamento original.\n\nCom carinho,\nGessyca Nails ♥️`,
             };
 
-            // Enviar o e-mail
             await transporter.sendMail(mailOptions);
-            console.log('E-mail de reembolso enviado para o usuário');
+            console.log(`E-mail enviado para ${userEmail}`);
 
-            // Remover a compra do Firestore
+            // Remove compra do Firestore
             const userRef = db.collection('users').doc(uid);
             const userDoc = await userRef.get();
-            const purchases = userDoc.data().purchases;
 
-            await admin.auth().setCustomUserClaims(uid, {
-                course_purchased: false,
-            });
+            if (!userDoc.exists) {
+                console.error('Usuário não encontrado:', uid);
+                return;
+            }
 
-            const updatedPurchases = purchases.filter(purchase => purchase.sessionId !== session.id);
+            const purchases = userDoc.data().purchases || [];
+            const updatedPurchases = purchases.filter(p => p.sessionId !== charge.metadata?.session_id);
 
             await userRef.update({
                 purchases: updatedPurchases
             });
 
-            console.log(`Compra removida do Firestore para o usuário ${uid}`);
-        } catch (error) {
-            console.error('Erro ao processar evento de reembolso:', error);
-            res.status(500).json({
-                error: `Erro ao processar evento de reembolso: ${error.message}`,
+            // Remove claims personalizadas se necessário
+            await admin.auth().setCustomUserClaims(uid, {
+                course_purchased: false
             });
 
-            res.status(200).send('');
+            console.log(`Compra removida do Firestore para o usuário ${uid}`);
         }
     }
 
