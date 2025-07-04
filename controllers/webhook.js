@@ -30,7 +30,7 @@ export const processWebhook = async (req, res) => {
         return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    const paymentIntent = event.data.object;
+    const paymentIntent = stripeEvent.data.object;
 
     if (paymentIntent.metadata && paymentIntent.metadata.uid) {
         var {
