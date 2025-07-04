@@ -53,7 +53,7 @@ export const processWebhook = async (req, res) => {
         console.log('✅ Produto comprado:', productName);
     });
 
-    if (stripeEvent.type === 'checkout.session.completed') {
+    if (stripeEvent.type === 'payment_intent.succeeded') {
         const name = session.customer_details.name;
         const userEmail = session.customer_details.email;
         console.log(`Email do cliente: ${userEmail}`);
