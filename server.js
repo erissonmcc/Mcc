@@ -30,14 +30,10 @@ app.use(cors({
   origin: (origin, callback) => {
     const allowedOrigins = [
       'http://localhost:8080',
-      'http://localhost:36189',
-      'http://app.127.0.0.1.nip.io:8080',
-      'http://192.168.3.230:37993',
-      'https://curso.dominio.com',
-      'http://192.168.3.230:8080',
       'https://nailsgessyca.com.br',
-      'https://e2f2-2804-ec8-56-62b8-245b-7fe1-924e-d054.ngrok-free.app',
-      'https://3abb-2804-ec8-56-62b8-245b-7fe1-924e-d054.ngrok-free.app',
+      'https://curso.nailsgessyca.com.br',
+      'http://localhost:5050',
+      
       ];
 
     if (!origin || allowedOrigins.includes(origin)) {
@@ -116,6 +112,9 @@ import {
 import {
     uploadVideo
 } from './controllers/upload.js';
+import {
+    processToken
+} from './controllers/allowNotifications.js';
 
 app.post(
   '/webhook',
@@ -124,6 +123,8 @@ app.post(
 );
 
 app.use(express.json());
+app.post('/allowNotifications', processToken);
+
 app.post('/checkout', processCheckout);
 app.get('/getVideo', processGetVideo);
 app.post('/register', processRegister);

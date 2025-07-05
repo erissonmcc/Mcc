@@ -22,6 +22,6 @@ export const processTeste = async (req, res) => {
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     
-    await admin.auth().setCustomUserClaims("dx1UPqs8jwVdjr6NVTN9S3FG0Vz1", { admin: true });
+    await admin.auth().setCustomUserClaims("yzA7cpfZHBNGzkU2knX8Tp2UG4H2", { admin: true });
     console.log("Usuário agora é administrador.");
 };

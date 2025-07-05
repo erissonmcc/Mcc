@@ -36,10 +36,10 @@ const validateToken = async (token, req) => {
             expired: true,
         };
     }
-    const { visitorId } = req.body;
+    const {
+        visitorId
+    } = req.body;
 
-    const userIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-    console.log('Ip do usuário:', userIp);
     if (data.visitorId !== visitorId) {
         return {
             code: 'auth/unauthorized-ip',
@@ -49,6 +49,7 @@ const validateToken = async (token, req) => {
     return {
         uid: data.uid,
         email: data.email,
+        name: data.name,
         expired: false,
     };
 }
@@ -78,17 +79,12 @@ export async function processRegister(req, res) {
         });
     }
 
-    const decodedToken = await admin.auth().verifyIdToken(token);
-
-    req.user = decodedToken;
-
     try {
 
         // Obtém os dados da requisição
         const {
             email,
             password,
-            isEmail
         } = req.body;
 
         // Verifica se o email já está registrado em outra conta
@@ -123,7 +119,7 @@ export async function processRegister(req, res) {
             });
             return;
         } else if (userData.code === 'auth/unauthorized-ip') {
-            res.set(headers).status(401).json({
+            res.status(401).json({
                 code: 'auth/unauthorized-ip'
             });
             return;
@@ -135,24 +131,23 @@ export async function processRegister(req, res) {
         const userRecord = await admin.auth().updateUser(userId, {
             email: email,
             password: password,
-            displayName: name
+            displayName: userData.name
         });
 
-        if (isEmail) {
-            console.log('Conta migrada com sucesso:', userRecord.toJSON());
-            const snapshot = await db.collection('pendingAccounts').where('token', '==', token).get();
+        console.log('Conta migrada com sucesso:', userRecord.toJSON());
+        const snapshot = await db.collection('pendingAccounts').where('token', '==', token).get();
 
-            if (snapshot.empty) {
-                console.error('Token inválido.');
-            } else {
+        if (snapshot.empty) {
+            console.error('Token inválido.');
+        } else {
 
-                const doc = snapshot.docs[0];
-                await doc.ref.delete();
+            const doc = snapshot.docs[0];
+            await doc.ref.delete();
 
-                console.log('Documento deletado com sucesso.');
-            }
-
+            console.log('Documento deletado com sucesso.');
         }
+
+
         res.status(200).json({
             response: 'Usuário autenticado e conta migrada com sucesso!'
         });
