@@ -215,18 +215,20 @@ export const processWebhook = async (req, res) => {
                 const adminUsersSnapshot = await adminUsersRef.get();
 
                 const notificationPromises = [];
-                const paymentMethodDetails = stripeEvent.data.object.charges.data[0].payment_method_details;
-let halfway;
-if (paymentMethodDetails.card) {
-  halfway = 'Cartão'
-} else if (paymentMethodDetails.boleto) {
-  halfway = 'Boleto'
-} else if (paymentMethodDetails.pix) {
-  halfway = 'Pix';
-} else {
-    halfway = '[Metado não reconhecido]'
-  console.log('Outro método:', Object.keys(paymentMethodDetails));
-}
+                const pi = stripeEvent.data.object;
+                const charge = pi.charges.data[0];
+                const method = charge.payment_method_details;
+                let halfway;
+                if (method.card) {
+                    halfway = 'Cartão';
+                } else if (method.boleto) {
+                    halfway = 'Boleto';
+                } else if (method.pix) {
+                    halfway = 'Pix';
+                } else {
+                    halfway = '[Metado não reconhecido]'
+                    console.log('Outro método:', Object.keys(paymentMethodDetails));
+                }
                 adminUsersSnapshot.forEach(adminUserDoc => {
                     const adminUserData = adminUserDoc.data();
                     const adminUserToken = adminUserData.token;
