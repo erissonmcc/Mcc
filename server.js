@@ -136,6 +136,9 @@ app.post('/support', processSupport);
 app.get('/getUsers-admin', processGetAllUsers);
 app.get('/getSupport-admin', processGetSupport);
 app.post('/upload', uploadVideo);
+app.get('/ping', (req, res) => {
+  res.send('ok');
+});
 
 import {
     processTeste
@@ -283,3 +286,9 @@ wss.on('connection', (ws) => {
         }
     });
 });
+
+setInterval(() => {
+  fetch("https://api.nailsgessyca.com.br/ping")
+    .then(() => console.log("Ping automático enviado"))
+    .catch((err) => console.error("Erro ao enviar ping:", err));
+}, 14 * 60 * 1000); // a cada 14 minutos
