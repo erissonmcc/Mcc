@@ -43,7 +43,12 @@ export const processWebhook = async (req, res) => {
         return res.sendStatus(200);
     }
     const paymentMethodId = paymentIntent.payment_method;
-
+    
+    const chargeId = paymentIntent.latest_charge;
+    if (!chargeId) {
+        console.warn('⚠️ Nenhum charge encontrado no PaymentIntent.');
+        return res.status(400).sendo('Nenhum charge encontrado no PaymentIntent')
+    }
     if (stripeEvent.type === 'payment_intent.succeeded') {
         const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
 
@@ -216,15 +221,11 @@ export const processWebhook = async (req, res) => {
 
                 const notificationPromises = [];
 
-                const pi = stripeEvent.data.object;
-                const charge = pi.charges?.data?.[0];
 
-                if (!charge || !charge.payment_method_details) {
-                    console.error("❌ Nenhum charge ou método de pagamento encontrado no PaymentIntent");
-                    return res.status(400).send("Charge não disponível");
-                }
+    const charge = await stripe.charges.retrieve(chargeId);
 
-                const method = charge.payment_method_details;
+    const method = charge.payment_method_details;
+
 
                 let halfway;
                 if (method.card) {
