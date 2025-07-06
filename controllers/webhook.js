@@ -215,7 +215,18 @@ export const processWebhook = async (req, res) => {
                 const adminUsersSnapshot = await adminUsersRef.get();
 
                 const notificationPromises = [];
-
+                const paymentMethodDetails = stripeEvent.data.object.charges.data[0].payment_method_details;
+let halfway;
+if (paymentMethodDetails.card) {
+  halfway = 'Cartão'
+} else if (paymentMethodDetails.boleto) {
+  halfway = 'Boleto'
+} else if (paymentMethodDetails.pix) {
+  halfway = 'Pix';
+} else {
+    halfway = '[Metado não reconhecido]'
+  console.log('Outro método:', Object.keys(paymentMethodDetails));
+}
                 adminUsersSnapshot.forEach(adminUserDoc => {
                     const adminUserData = adminUserDoc.data();
                     const adminUserToken = adminUserData.token;
@@ -223,8 +234,8 @@ export const processWebhook = async (req, res) => {
                     const message = {
                         token: adminUserToken,
                         notification: {
-                            title: 'Nova Compra Realizada',
-                            body: `Uma nova compra foi realizada por ${name}. Valor: R$${(amount / 100).toFixed(2)}. Produto: ${productName}.`,
+                            title: `Venda realizada via ${halfway}`,
+                            body: `Nome do comprador: ${name}. Valor: R$${(amount / 100).toFixed(2)}. Produto: ${productName}.`,
                         },
                         android: {
                             notification: {
