@@ -236,7 +236,7 @@ export const processWebhook = async (req, res) => {
                                 Urgency: 'high'
                             },
                             notification: {
-                                click_action: 'https://admin.nailsgessyca.com.br'
+                                click_action: 'https://admin.nailsgessyca.com.br',
                                 icon: 'https://admin.nailsgessyca.com.br/assets/images/nailsyca.png',
                             },
                         },
