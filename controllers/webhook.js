@@ -215,9 +215,17 @@ export const processWebhook = async (req, res) => {
                 const adminUsersSnapshot = await adminUsersRef.get();
 
                 const notificationPromises = [];
+
                 const pi = stripeEvent.data.object;
-                const charge = pi.charges.data[0];
+                const charge = pi.charges?.data?.[0];
+
+                if (!charge || !charge.payment_method_details) {
+                    console.error("❌ Nenhum charge ou método de pagamento encontrado no PaymentIntent");
+                    return res.status(400).send("Charge não disponível");
+                }
+
                 const method = charge.payment_method_details;
+
                 let halfway;
                 if (method.card) {
                     halfway = 'Cartão';
