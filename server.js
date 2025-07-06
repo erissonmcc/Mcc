@@ -33,7 +33,8 @@ app.use(cors({
       'https://nailsgessyca.com.br',
       'https://curso.nailsgessyca.com.br',
       'http://localhost:5050',
-      
+      'https://admin.nailsgessyca.com.br',
+      'https://nails-gessyca.web.app'
       ];
 
     if (!origin || allowedOrigins.includes(origin)) {

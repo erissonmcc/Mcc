@@ -1,40 +1,51 @@
-import Stripe from 'stripe';
 import dotenv from 'dotenv';
-
 dotenv.config();
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-04-10' // use a versão atual da sua conta
-});
+import admin from 'firebase-admin';
 
-/**
- * Função para reembolsar um boleto (via Payment Intent)
- * @param {string} paymentIntentId - ID do PaymentIntent a ser reembolsado
- */
-async function reembolsarBoleto(paymentIntentId) {
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: 'https://nail-art-by-gessica-default-rtdb.firebaseio.com',
+    storageBucket: "nail-art-by-gessica.appspot.com"
+  });
+}
+
+async function enviarNotificacao() {
   try {
-    // Buscar o payment intent (opcional, para checagem extra)
-    const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    const token = "dA4uLrK3fqkq41bHKAKMOn:APA91bHCNAc2OwNRqTXmpqtxgqA23oxw448YtVtz94S6j5C-XynJTvnxfMoGyjroX4RP2_-TljMqAc_MfdgTCVCWMAJwkJXY67V3YLEXkEdILN24oDE8-ZU";
 
-    if (intent.status !== 'succeeded') {
-      console.error('Pagamento ainda não foi concluído. Não é possível reembolsar.');
-      return;
-    }
+    const message = {
+      token: token,
+      notification: {
+        title: 'Nova Compra Realizada',
+        body: 'Uma nova compra foi realizada por Maria Silva. Valor: R$149,90. Produto: Curso de Unhas Profissional.',
+      },
+      android: {
+        priority: 'high',
+      },
+      webpush: {
+        headers: {
+          Urgency: 'high'
+        },
+        notification: {
+          icon: 'https://admin.nailsgessyca.com.br/assets/images/nailsyca.png',
+          click_action: 'https://admin.nailsgessyca.com.br'  
+        },
+      },
+      data: {
+        productName: 'Curso de Unhas Profissional',
+        purchaseDate: admin.firestore.Timestamp.now().toDate().toISOString(),
+      },
+    };
 
-    // Criar o reembolso
-    const refund = await stripe.refunds.create({
-      payment_intent: paymentIntentId,
-      reason: 'requested_by_customer'
-    });
-
-    console.log('Reembolso solicitado com sucesso!');
-    console.log(`ID do reembolso: ${refund.id}`);
-    console.log(`Status do reembolso: ${refund.status}`);
+    const response = await admin.messaging().send(message);
+    console.log('✅ Notificação enviada com sucesso:', response);
   } catch (error) {
-    console.error('Erro ao solicitar reembolso:', error.message);
+    console.error('❌ Erro ao enviar notificação:', error.message);
   }
 }
 
-// Exemplo de uso
-const paymentIntentId = 'pi_3Rh8cHEuDtdGrglw0RXZpCp0'; // Substitua pelo ID real
-reembolsarBoleto(paymentIntentId);
+enviarNotificacao();
