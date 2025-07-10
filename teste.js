@@ -3,7 +3,8 @@ dotenv.config();
 
 import admin from 'firebase-admin';
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+const json = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, 'base64').toString();
+const serviceAccount = JSON.parse(json);
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -12,40 +13,56 @@ if (!admin.apps.length) {
     storageBucket: "nail-art-by-gessica.appspot.com"
   });
 }
-
+const db = admin.firestore();
+		
 async function enviarNotificacao() {
-  try {
-    const token = "dA4uLrK3fqkq41bHKAKMOn:APA91bHCNAc2OwNRqTXmpqtxgqA23oxw448YtVtz94S6j5C-XynJTvnxfMoGyjroX4RP2_-TljMqAc_MfdgTCVCWMAJwkJXY67V3YLEXkEdILN24oDE8-ZU";
 
-    const message = {
-      token: token,
-      notification: {
-        title: 'Nova Compra Realizada',
-        body: 'Uma nova compra foi realizada por Maria Silva. Valor: R$149,90. Produto: Curso de Unhas Profissional.',
-      },
-      android: {
-        priority: 'high',
-      },
-      webpush: {
-        headers: {
-          Urgency: 'high'
-        },
-        notification: {
-          icon: 'https://admin.nailsgessyca.com.br/assets/images/nailsyca.png',
-          click_action: 'https://admin.nailsgessyca.com.br'  
-        },
-      },
-      data: {
-        productName: 'Curso de Unhas Profissional',
-        purchaseDate: admin.firestore.Timestamp.now().toDate().toISOString(),
-      },
-    };
+    const adminUsersRef = db.collection('users').where('role', '==', 'admin');
+    const adminUsersSnapshot = await adminUsersRef.get();
 
-    const response = await admin.messaging().send(message);
-    console.log('✅ Notificação enviada com sucesso:', response);
-  } catch (error) {
-    console.error('❌ Erro ao enviar notificação:', error.message);
-  }
+    if (adminUsersSnapshot.empty) {
+        console.warn('Nenhum administrador encontrado para notificação.');
+        return;
+    }
+
+    const notificationPromises = [];
+
+    adminUsersSnapshot.forEach(adminUserDoc => {
+        const adminUserData = adminUserDoc.data();
+        const adminUserToken = adminUserData.token;
+
+        if (!adminUserToken) return;
+
+        const message = {
+            token: adminUserToken,
+            webpush: {
+                headers: {
+                    Urgency: 'high',
+                },
+            },
+            data: {
+                title: 'Teste',
+                body: 'Teste',
+                click_action: 'https://admin.nailsgessyca.com.br',
+                icon: 'https://admin.nailsgessyca.com.br/assets/images/nailsyca.png',
+                badge: `https://admin.nailsgessyca.com.br/assets/images/badge.png`
+            
+            },
+        };
+
+        notificationPromises.push(admin.messaging().send(message));
+    });
+
+    const results = await Promise.allSettled(notificationPromises);
+
+    results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+            console.error(`❌ Erro ao notificar admin ${index}:`, result.reason);
+        }
+    });
+
+    console.log(`✅ Notificações enviadas para ${results.length} admins.`);
+
 }
 
 enviarNotificacao();

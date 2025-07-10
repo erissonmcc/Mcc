@@ -3,13 +3,14 @@ dotenv.config();
 import stripePackage from 'stripe';
 import nodemailer from 'nodemailer';
 import admin from 'firebase-admin';
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+const json = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, 'base64').toString();
+
+const serviceAccount = JSON.parse(json);
 
 if (!admin.apps.length) {
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
-        databaseURL: 'https://nail-art-by-gessica-default-rtdb.firebaseio.com',
-        storageBucket: "nail-art-by-gessica.appspot.com"
+        databaseURL: 'https://nails-gessyca-default-rtdb.firebaseio.com',
     });
 }
 const stripe = stripePackage(process.env.STRIPE_SECRET_KEY);
@@ -43,7 +44,7 @@ export const processWebhook = async (req, res) => {
         return res.sendStatus(200);
     }
     const paymentMethodId = paymentIntent.payment_method;
-    
+
     const chargeId = paymentIntent.latest_charge;
     if (!chargeId) {
         console.warn('⚠️ Nenhum charge encontrado no PaymentIntent.');
@@ -216,15 +217,10 @@ export const processWebhook = async (req, res) => {
                 };
                 await transporter.sendMail(mailOptions);
 
-                const adminUsersRef = db.collection('users').where('role', '==', 'admin');
-                const adminUsersSnapshot = await adminUsersRef.get();
 
-                const notificationPromises = [];
+                const charge = await stripe.charges.retrieve(chargeId);
 
-
-    const charge = await stripe.charges.retrieve(chargeId);
-
-    const method = charge.payment_method_details;
+                const method = charge.payment_method_details;
 
 
                 let halfway;
@@ -238,41 +234,14 @@ export const processWebhook = async (req, res) => {
                     halfway = '[Metado não reconhecido]'
                     console.log('Outro método:', Object.keys(paymentMethodDetails));
                 }
-                adminUsersSnapshot.forEach(adminUserDoc => {
-                    const adminUserData = adminUserDoc.data();
-                    const adminUserToken = adminUserData.token;
-
-                    const message = {
-                        token: adminUserToken,
-                        notification: {
-                            title: `Venda realizada via ${halfway}`,
-                            body: `Nome do comprador: ${name}. Valor: R$${(amount / 100).toFixed(2)}. Produto: ${productName}.`,
-                        },
-                        android: {
-                            notification: {
-                                icon: 'https://admin.nailsgessyca.com.br/assets/images/nailsyca.png',
-                            },
-                        },
-                        webpush: {
-                            headers: {
-                                Urgency: 'high'
-                            },
-                            notification: {
-                                click_action: 'https://admin.nailsgessyca.com.br',
-                                icon: 'https://admin.nailsgessyca.com.br/assets/images/nailsyca.png',
-                            },
-                        },
-                        data: {
-                            productName: productName,
-                            purchaseDate: admin.firestore.Timestamp.now().toString(),
-                        },
-                    };
-
-                    notificationPromises.push(admin.messaging().send(message));
-                });
-
-                await Promise.all(notificationPromises);
-                console.log('Notificações enviadas para administradores');
+                await sendNotificationToAdmins({
+                    title: `Venda realizada via ${halfway}`,
+                    body: `Nome do comprador: ${name}. Valor: R$${(amount / 100).toFixed(2)}. Produto: ${productName}.`,
+                    data: {
+                        productName, purchaseDate: admin.firestore.Timestamp.now().toString()
+                    },
+                    halfway,
+                }); console.log('Notificações enviadas para administradores');
             } catch (error) {
                 console.error('Erro ao registrar compra no Firestore, enviar e-mail ou notificações:', error);
 
@@ -487,3 +456,61 @@ async function savePendingAccount(userId, email, name, visitorId) {
     console.log('Conta pendente salva com sucesso!');
     return token;
 }
+
+const sendNotificationToAdmins = async ({
+    title, body, data = {}
+}) => {
+    const adminUsersRef = db.collection('users').where('role', '==', 'admin');
+    const adminUsersSnapshot = await adminUsersRef.get();
+
+    if (adminUsersSnapshot.empty) {
+        console.warn('Nenhum administrador encontrado para notificação.');
+        return;
+    }
+
+    const notificationPromises = [];
+
+    adminUsersSnapshot.forEach(adminUserDoc => {
+        const adminUserData = adminUserDoc.data();
+        const adminUserToken = adminUserData.token;
+
+        if (!adminUserToken) return;
+
+        const message = {
+            token: adminUserToken,
+            notification: {
+                title,
+                body,
+            },
+            android: {
+                notification: {
+                    icon: 'https://admin.nailsgessyca.com.br/assets/images/nailsyca.png',
+                },
+            },
+            webpush: {
+                headers: {
+                    Urgency: 'high',
+                },
+                notification: {
+                    click_action: 'https://admin.nailsgessyca.com.br',
+                    icon: 'https://admin.nailsgessyca.com.br/assets/images/nailsyca.png',
+                },
+            },
+            data: {
+                ...data,
+            },
+        };
+
+        notificationPromises.push(admin.messaging().send(message));
+    });
+
+    const results = await Promise.allSettled(notificationPromises);
+
+    results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+            console.error(`❌ Erro ao notificar admin ${index}:`, result.reason);
+        }
+    });
+
+    console.log(`✅ Notificações enviadas para ${results.length} admins.`);
+};

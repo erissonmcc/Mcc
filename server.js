@@ -12,14 +12,17 @@ import admin from 'firebase-admin';
 import cookieParser from 'cookie-parser';
 
 // Inicialização do Firebase
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+const json = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, 'base64').toString();
+
+const serviceAccount = JSON.parse(json);
 
 if (!admin.apps.length) {
-    admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-        databaseURL: 'https://nail-art-by-gessica-default-rtdb.firebaseio.com/',
-        storageBucket: 'nail-art-by-gessica.appspot.com',
-    });
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://nails-gessyca-default-rtdb.firebaseio.com"
+});
+
 }
 
 const app = express();
@@ -34,7 +37,8 @@ app.use(cors({
       'https://curso.nailsgessyca.com.br',
       'http://localhost:5050',
       'https://admin.nailsgessyca.com.br',
-      'https://nails-gessyca.web.app'
+      'https://nails-gessyca.web.app',
+      'http://localhost:6060'
       ];
 
     if (!origin || allowedOrigins.includes(origin)) {
@@ -160,6 +164,7 @@ const wss = new WebSocketServer({
 
 const handleAuthentication = async (ws, message) => {
     try {
+        console.log(JSON.parse(message));
         const {
             chatId,
             token,
@@ -222,7 +227,8 @@ const handleNewMessage = async (ws, messagesRef, decodedToken, snapshot) => {
             ws.send(JSON.stringify({
                 message: newMessage.message,
                 timestamp: newMessage.timestamp,
-                user: newMessage.user
+                user: newMessage.user,
+                functionName: newMessage.functionName
             }));
         }
     } catch (error) {
@@ -286,9 +292,3 @@ wss.on('connection', (ws) => {
         }
     });
 });
-
-setInterval(() => {
-  fetch("https://api.nailsgessyca.com.br/ping")
-    .then(() => console.log("Ping automático enviado"))
-    .catch((err) => console.error("Erro ao enviar ping:", err));
-}, 14 * 60 * 1000); // a cada 14 minutos

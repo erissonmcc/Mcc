@@ -4,16 +4,16 @@ import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 
 import admin from 'firebase-admin';
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+const json = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, 'base64').toString();
+
+const serviceAccount = JSON.parse(json);
 
 if (!admin.apps.length) {
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
-        databaseURL: 'https://nail-art-by-gessica-default-rtdb.firebaseio.com',
-        storageBucket: "nail-art-by-gessica.appspot.com"
+        databaseURL: 'https://nails-gessyca-default-rtdb.firebaseio.com',
     });
 }
-
 const db = admin.firestore();
 
 async function renewToken(doc, data) {

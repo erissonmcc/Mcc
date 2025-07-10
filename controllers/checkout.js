@@ -7,11 +7,20 @@ import Stripe from 'stripe'; import admin from 'firebase-admin'; import pkg from
 const {
     PhoneNumberUtil,
     PhoneNumberFormat
-} = pkg; const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY); if (!admin.apps.length) {
+} = pkg; 
+
+const json = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, 'base64').toString();
+
+const serviceAccount = JSON.parse(json);
+
+if (!admin.apps.length) {
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount), databaseURL: 'https://nail-art-by-gessica-default-rtdb.firebaseio.com', storageBucket: "nail-art-by-gessica.appspot.com"
     });
-} const db = admin.firestore(); const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+} 
+
+const db = admin.firestore(); 
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 export const processCheckout = async (req, res) => {
     console.log('Nova solicitação recebida:', req.method, req.url);
@@ -86,7 +95,7 @@ export const processCheckout = async (req, res) => {
         amount;
         if (productId === 'PR20-X9A7G1ZK') {
             productName = 'Portiça Realista 2.0';
-            amount = 500;
+            amount = 100;
         } else {
             return res.status(404).json({
                 error: 'Erro ao processar o pagamento. Produto não encontrado.',

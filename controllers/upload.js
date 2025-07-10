@@ -6,16 +6,16 @@ import multer from 'multer';
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+const json = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, 'base64').toString();
+
+const serviceAccount = JSON.parse(json);
 
 if (!admin.apps.length) {
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
-        databaseURL: 'https://nail-art-by-gessica-default-rtdb.firebaseio.com',
-        storageBucket: 'nail-art-by-gessica.appspot.com',
+        databaseURL: 'https://nails-gessyca-default-rtdb.firebaseio.com',
     });
 }
-
 // Configuração do S3 v3
 const s3 = new S3Client({
     region: process.env.AWS_REGION,
